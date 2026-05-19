@@ -104,6 +104,18 @@
 	},
 	"codeIndex": {
 		"title": "Lập chỉ mục mã nguồn",
+		"scope": {
+			"label": "Save changes to",
+			"global": "Global",
+			"workspace": "This workspace",
+			"descriptionGlobal": "Settings apply to all workspaces that don't have their own override.",
+			"descriptionWorkspace": "Settings apply only to this workspace. Workspace values override global ones."
+		},
+		"pinned": {
+			"label": "Pinned",
+			"byProjectDotfile": "Set by .roo/codebase-index.json in this project. Edit that file to change.",
+			"byGlobalDotfile": "Set by ~/.roo/codebase-index.json. Edit that file to change."
+		},
 		"enableLabel": "Bật lập chỉ mục mã nguồn",
 		"enableDescription": "Bật lập chỉ mục mã để cải thiện tìm kiếm và sự hiểu biết về ngữ cảnh",
 		"providerLabel": "Nhà cung cấp nhúng",

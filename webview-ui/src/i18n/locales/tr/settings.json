@@ -104,6 +104,18 @@
 	},
 	"codeIndex": {
 		"title": "Kod Tabanı İndeksleme",
+		"scope": {
+			"label": "Save changes to",
+			"global": "Global",
+			"workspace": "This workspace",
+			"descriptionGlobal": "Settings apply to all workspaces that don't have their own override.",
+			"descriptionWorkspace": "Settings apply only to this workspace. Workspace values override global ones."
+		},
+		"pinned": {
+			"label": "Pinned",
+			"byProjectDotfile": "Set by .roo/codebase-index.json in this project. Edit that file to change.",
+			"byGlobalDotfile": "Set by ~/.roo/codebase-index.json. Edit that file to change."
+		},
 		"enableLabel": "Kod Tabanı İndekslemeyi Etkinleştir",
 		"enableDescription": "Geliştirilmiş arama ve bağlam anlayışı için kod indekslemeyi etkinleştirin",
 		"providerLabel": "Gömme Sağlayıcısı",

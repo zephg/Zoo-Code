@@ -104,6 +104,18 @@
 	},
 	"codeIndex": {
 		"title": "コードベースのインデックス作成",
+		"scope": {
+			"label": "Save changes to",
+			"global": "Global",
+			"workspace": "This workspace",
+			"descriptionGlobal": "Settings apply to all workspaces that don't have their own override.",
+			"descriptionWorkspace": "Settings apply only to this workspace. Workspace values override global ones."
+		},
+		"pinned": {
+			"label": "Pinned",
+			"byProjectDotfile": "Set by .roo/codebase-index.json in this project. Edit that file to change.",
+			"byGlobalDotfile": "Set by ~/.roo/codebase-index.json. Edit that file to change."
+		},
 		"enableLabel": "コードベースのインデックス作成を有効化",
 		"enableDescription": "コードのインデックス作成を有効にして、検索とコンテキストの理解を向上させます",
 		"providerLabel": "埋め込みプロバイダー",
