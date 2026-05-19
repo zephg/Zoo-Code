@@ -381,6 +381,38 @@ export type ExtensionState = Pick<
 	debug?: boolean
 
 	/**
+	 * Per-field origin of the resolved codebase-index config:
+	 *   "project-dotfile" | "global-dotfile" | "workspace" | "global" | "default"
+	 * Webview uses this to disable editing and show a "pinned by dotfile" badge
+	 * for fields that came from either dotfile layer.
+	 */
+	codebaseIndexConfigSources?: Partial<
+		Record<
+			| "codebaseIndexEnabled"
+			| "codebaseIndexQdrantUrl"
+			| "codebaseIndexEmbedderProvider"
+			| "codebaseIndexEmbedderBaseUrl"
+			| "codebaseIndexEmbedderModelId"
+			| "codebaseIndexEmbedderModelDimension"
+			| "codebaseIndexSearchMinScore"
+			| "codebaseIndexSearchMaxResults"
+			| "codebaseIndexOpenAiCompatibleBaseUrl"
+			| "codebaseIndexOpenAiCompatibleModelDimension"
+			| "codebaseIndexBedrockRegion"
+			| "codebaseIndexBedrockProfile"
+			| "codebaseIndexOpenRouterSpecificProvider"
+			| "codeIndexOpenAiKey"
+			| "codeIndexQdrantApiKey"
+			| "codebaseIndexOpenAiCompatibleApiKey"
+			| "codebaseIndexGeminiApiKey"
+			| "codebaseIndexMistralApiKey"
+			| "codebaseIndexVercelAiGatewayApiKey"
+			| "codebaseIndexOpenRouterApiKey",
+			"project-dotfile" | "global-dotfile" | "workspace" | "global" | "default"
+		>
+	>
+
+	/**
 	 * Monotonically increasing sequence number for clineMessages state pushes.
 	 * When present, the frontend should only apply clineMessages from a state push
 	 * if its seq is greater than the last applied seq. This prevents stale state
@@ -653,6 +685,18 @@ export interface WebviewMessage {
 	organizationId?: string | null // For organization switching
 	useProviderSignup?: boolean // For rooCloudSignIn to use provider signup flow
 	codeIndexSettings?: {
+		/**
+		 * Where to persist non-secret fields:
+		 *   - "global" (default): ContextProxy globalState (one config for all workspaces)
+		 *   - "workspace": ExtensionContext.workspaceState under a folder-scoped key
+		 * Secrets follow the same scope by default but can be overridden with
+		 * `secretsSaveScope` for users who want workspace config + shared creds.
+		 */
+		saveScope?: "global" | "workspace"
+		/** Optional override — defaults to `saveScope`. Useful when non-secrets move
+		 * per-workspace but the credentials remain shared globally. */
+		secretsSaveScope?: "global" | "workspace"
+
 		// Global state settings
 		codebaseIndexEnabled: boolean
 		codebaseIndexQdrantUrl: string

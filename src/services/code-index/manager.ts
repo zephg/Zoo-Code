@@ -17,6 +17,7 @@ import { TelemetryService } from "@roo-code/telemetry"
 import { TelemetryEventName } from "@roo-code/types"
 import { CODEBASE_INDEX_DOTFILE_FILENAME, getGlobalDotfilePath } from "./dotfile-loader"
 import { getGlobalRooDirectory } from "../roo-config"
+import type { CodebaseIndexConfig } from "@roo-code/types"
 
 export class CodeIndexManager {
 	// --- Singleton Implementation ---
@@ -124,6 +125,45 @@ export class CodeIndexManager {
 
 	public async setAutoEnableDefault(enabled: boolean): Promise<void> {
 		await this.context.globalState.update("codeIndexAutoEnableDefault", enabled)
+	}
+
+	/**
+	 * Real folder URI for this workspace instance. Exposed so callers (like
+	 * webviewMessageHandler saveCodeIndexSettingsAtomic) can compose the same
+	 * workspace-scoped keys that CodeIndexConfigManager uses internally.
+	 */
+	public get folderUri(): vscode.Uri {
+		return this._folderUri
+	}
+
+	/**
+	 * Source-of-truth map for resolved config fields. Used by the webview to
+	 * render "pinned by .roo/codebase-index.json" badges. Returns an empty
+	 * object when the config manager hasn't loaded yet.
+	 */
+	public getConfigSources() {
+		return this._configManager?.getConfigSources() ?? {}
+	}
+
+	/**
+	 * Non-secret subset of the resolved config, for inclusion in extension state.
+	 * Secrets are never shipped to the webview; the UI queries for secret presence
+	 * via the separate `requestCodeIndexSecretStatus` path.
+	 */
+	public getResolvedConfigNonSecrets(): Partial<CodebaseIndexConfig> {
+		const resolved = this._configManager?.getLastResolvedConfig()
+		if (!resolved) return {}
+		const {
+			codeIndexOpenAiKey: _a,
+			codeIndexQdrantApiKey: _b,
+			codebaseIndexOpenAiCompatibleApiKey: _c,
+			codebaseIndexGeminiApiKey: _d,
+			codebaseIndexMistralApiKey: _e,
+			codebaseIndexVercelAiGatewayApiKey: _f,
+			codebaseIndexOpenRouterApiKey: _g,
+			...nonSecret
+		} = resolved
+		return nonSecret
 	}
 
 	public get onProgressUpdate() {

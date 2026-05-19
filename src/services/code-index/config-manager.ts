@@ -13,7 +13,7 @@ import { EmbedderProvider } from "./interfaces/manager"
 import { CodeIndexConfig, PreviousConfigSnapshot } from "./interfaces/config"
 import { DEFAULT_SEARCH_MIN_SCORE, DEFAULT_MAX_SEARCH_RESULTS } from "./constants"
 import { getDefaultModelId, getModelDimension, getModelScoreThreshold } from "../../shared/embeddingModels"
-import { resolveCodeIndexConfig, type ResolvedConfigSources } from "./config-resolver"
+import { resolveCodeIndexConfig, type ResolvedCodeIndexConfig, type ResolvedConfigSources } from "./config-resolver"
 import { formatDotfileWarning, loadGlobalDotfile, loadProjectDotfile, type DotfileWarning } from "./dotfile-loader"
 
 /**
@@ -57,6 +57,8 @@ export class CodeIndexConfigManager {
 
 	/** Per-field map of which storage layer supplied each resolved value. Populated on every load. */
 	private _configSources: ResolvedConfigSources = {}
+	/** Full resolved config (including secrets) as of the last load. Used by the webview state builder. */
+	private _lastResolvedConfig: ResolvedCodeIndexConfig | null = null
 	/** Workspace-scoped secret values. Filled asynchronously in loadConfiguration(); empty until then. */
 	private _workspaceScopedSecrets: Partial<CodebaseIndexProvider> = {}
 	/** Last-parsed project dotfile, if any. Filled asynchronously in loadConfiguration(). */
@@ -244,6 +246,7 @@ export class CodeIndexConfigManager {
 		})
 
 		this._configSources = sources
+		this._lastResolvedConfig = config
 
 		this.codebaseIndexEnabled = config.codebaseIndexEnabled
 		this.qdrantUrl = config.codebaseIndexQdrantUrl
@@ -702,5 +705,13 @@ export class CodeIndexConfigManager {
 	 */
 	public getConfigSources(): ResolvedConfigSources {
 		return { ...this._configSources }
+	}
+
+	/**
+	 * The full resolved config from the last load, or null if load hasn't happened.
+	 * Returned object may be frozen by callers; treat as read-only.
+	 */
+	public getLastResolvedConfig(): ResolvedCodeIndexConfig | null {
+		return this._lastResolvedConfig
 	}
 }

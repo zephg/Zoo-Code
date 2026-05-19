@@ -81,6 +81,10 @@ interface LocalCodeIndexSettings {
 	codebaseIndexVercelAiGatewayApiKey?: string
 	codebaseIndexOpenRouterApiKey?: string
 	codebaseIndexOpenRouterSpecificProvider?: string
+
+	// Save-scope routing (attached only on the way out to the backend)
+	saveScope?: "global" | "workspace"
+	secretsSaveScope?: "global" | "workspace"
 }
 
 // Validation schema for codebase index settings
@@ -187,7 +191,8 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 }) => {
 	const SECRET_PLACEHOLDER = "••••••••••••••••"
 	const { t } = useAppTranslation()
-	const { codebaseIndexConfig, codebaseIndexModels, cwd, apiConfiguration } = useExtensionState()
+	const { codebaseIndexConfig, codebaseIndexConfigSources, codebaseIndexModels, cwd, apiConfiguration } =
+		useExtensionState()
 	const [open, setOpen] = useState(false)
 	const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false)
 	const [isSetupSettingsOpen, setIsSetupSettingsOpen] = useState(false)
@@ -196,6 +201,33 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 
 	const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
 	const [saveError, setSaveError] = useState<string | null>(null)
+
+	/**
+	 * Scope for the next save:
+	 *   - "global" (default): writes to VS Code globalState — applies to all workspaces
+	 *     that don't have their own override.
+	 *   - "workspace": writes to ExtensionContext.workspaceState under a folder-scoped key
+	 *     so only this workspace picks it up.
+	 * Secrets follow the same scope by default; we could split in a later revision.
+	 */
+	const [saveScope, setSaveScope] = useState<"global" | "workspace">("global")
+
+	/**
+	 * Returns which storage layer currently supplies a given field, or undefined if
+	 * no data has been loaded yet. Fields sourced from either dotfile layer are
+	 * rendered as read-only in the form.
+	 */
+	const sourceFor = useCallback(
+		(field: string) => codebaseIndexConfigSources?.[field as keyof typeof codebaseIndexConfigSources],
+		[codebaseIndexConfigSources],
+	)
+	const isPinnedByDotfile = useCallback(
+		(field: string) => {
+			const s = sourceFor(field)
+			return s === "project-dotfile" || s === "global-dotfile"
+		},
+		[sourceFor],
+	)
 
 	// Form validation state
 	const [formErrors, setFormErrors] = useState<Record<string, string>>({})
@@ -556,6 +588,9 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 		// Always include codebaseIndexEnabled to ensure it's persisted
 		settingsToSave.codebaseIndexEnabled = currentSettings.codebaseIndexEnabled
 
+		// Attach scope routing so the backend knows where to write.
+		settingsToSave.saveScope = saveScope
+
 		// Save settings to backend
 		vscode.postMessage({
 			type: "saveCodeIndexSettingsAtomic",
@@ -638,13 +673,60 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 							<div className="flex items-center gap-2">
 								<VSCodeCheckbox
 									checked={currentSettings.codebaseIndexEnabled}
-									onChange={(e: any) => updateSetting("codebaseIndexEnabled", e.target.checked)}>
+									onChange={(e: any) => updateSetting("codebaseIndexEnabled", e.target.checked)}
+									disabled={isPinnedByDotfile("codebaseIndexEnabled")}>
 									<span className="font-medium">{t("settings:codeIndex.enableLabel")}</span>
 								</VSCodeCheckbox>
 								<StandardTooltip content={t("settings:codeIndex.enableDescription")}>
 									<span className="codicon codicon-info text-xs text-vscode-descriptionForeground cursor-help" />
 								</StandardTooltip>
+								{isPinnedByDotfile("codebaseIndexEnabled") && (
+									<PinnedByDotfileBadge source={sourceFor("codebaseIndexEnabled")} t={t} />
+								)}
 							</div>
+						</div>
+
+						{/* Save scope selector */}
+						<div className="mb-4">
+							<div className="text-sm font-medium mb-1">{t("settings:codeIndex.scope.label")}</div>
+							<div
+								className="flex gap-1"
+								role="radiogroup"
+								aria-label={t("settings:codeIndex.scope.label")}>
+								<button
+									type="button"
+									role="radio"
+									aria-checked={saveScope === "global"}
+									onClick={() => setSaveScope("global")}
+									className={cn(
+										"flex-1 px-3 py-1.5 text-sm rounded border transition-colors",
+										saveScope === "global"
+											? "bg-vscode-button-background text-vscode-button-foreground border-vscode-button-background"
+											: "bg-transparent text-vscode-foreground border-vscode-dropdown-border hover:bg-vscode-list-hoverBackground",
+									)}>
+									{t("settings:codeIndex.scope.global")}
+								</button>
+								<button
+									type="button"
+									role="radio"
+									aria-checked={saveScope === "workspace"}
+									onClick={() => setSaveScope("workspace")}
+									disabled={!cwd}
+									className={cn(
+										"flex-1 px-3 py-1.5 text-sm rounded border transition-colors",
+										saveScope === "workspace"
+											? "bg-vscode-button-background text-vscode-button-foreground border-vscode-button-background"
+											: "bg-transparent text-vscode-foreground border-vscode-dropdown-border hover:bg-vscode-list-hoverBackground",
+										!cwd && "opacity-50 cursor-not-allowed",
+									)}>
+									{t("settings:codeIndex.scope.workspace")}
+								</button>
+							</div>
+							<p className="mt-1 text-xs text-vscode-descriptionForeground">
+								{saveScope === "workspace"
+									? t("settings:codeIndex.scope.descriptionWorkspace")
+									: t("settings:codeIndex.scope.descriptionGlobal")}
+							</p>
 						</div>
 
 						{/* Status Section */}
@@ -696,11 +778,20 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 								<div className="mt-4 space-y-4">
 									{/* Embedder Provider Section */}
 									<div className="space-y-2">
-										<label className="text-sm font-medium">
-											{t("settings:codeIndex.embedderProviderLabel")}
-										</label>
+										<div className="flex items-center gap-1">
+											<label className="text-sm font-medium">
+												{t("settings:codeIndex.embedderProviderLabel")}
+											</label>
+											{isPinnedByDotfile("codebaseIndexEmbedderProvider") && (
+												<PinnedByDotfileBadge
+													source={sourceFor("codebaseIndexEmbedderProvider")}
+													t={t}
+												/>
+											)}
+										</div>
 										<Select
 											value={currentSettings.codebaseIndexEmbedderProvider}
+											disabled={isPinnedByDotfile("codebaseIndexEmbedderProvider")}
 											onValueChange={(value: EmbedderProvider) => {
 												updateSetting("codebaseIndexEmbedderProvider", value)
 												// Clear model selection when switching providers
@@ -1432,11 +1523,20 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 
 									{/* Qdrant Settings */}
 									<div className="space-y-2">
-										<label className="text-sm font-medium">
-											{t("settings:codeIndex.qdrantUrlLabel")}
-										</label>
+										<div className="flex items-center gap-1">
+											<label className="text-sm font-medium">
+												{t("settings:codeIndex.qdrantUrlLabel")}
+											</label>
+											{isPinnedByDotfile("codebaseIndexQdrantUrl") && (
+												<PinnedByDotfileBadge
+													source={sourceFor("codebaseIndexQdrantUrl")}
+													t={t}
+												/>
+											)}
+										</div>
 										<VSCodeTextField
 											value={currentSettings.codebaseIndexQdrantUrl || ""}
+											disabled={isPinnedByDotfile("codebaseIndexQdrantUrl")}
 											onInput={(e: any) =>
 												updateSetting("codebaseIndexQdrantUrl", e.target.value)
 											}
@@ -1745,5 +1845,31 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 				</AlertDialogContent>
 			</AlertDialog>
 		</>
+	)
+}
+
+/**
+ * Tiny badge rendered next to fields pinned by a dotfile. Hover shows which
+ * dotfile (project-local or user-global) supplied the value.
+ */
+function PinnedByDotfileBadge({
+	source,
+	t,
+}: {
+	source: "project-dotfile" | "global-dotfile" | "workspace" | "global" | "default" | undefined
+	t: (key: string) => string
+}) {
+	if (source !== "project-dotfile" && source !== "global-dotfile") return null
+	const tooltipKey =
+		source === "project-dotfile"
+			? "settings:codeIndex.pinned.byProjectDotfile"
+			: "settings:codeIndex.pinned.byGlobalDotfile"
+	return (
+		<StandardTooltip content={t(tooltipKey)}>
+			<span className="text-xs text-vscode-descriptionForeground border border-vscode-dropdown-border rounded px-1.5 py-0.5 ml-1">
+				<span className="codicon codicon-lock text-[10px] mr-1" />
+				{t("settings:codeIndex.pinned.label")}
+			</span>
+		</StandardTooltip>
 	)
 }
