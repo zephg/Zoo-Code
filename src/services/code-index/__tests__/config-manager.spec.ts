@@ -103,7 +103,7 @@ describe("CodeIndexConfigManager", () => {
 				embedderProvider: "openai",
 				modelId: undefined,
 				openAiOptions: { openAiNativeApiKey: "" },
-				ollamaOptions: { ollamaBaseUrl: "" },
+				ollamaOptions: { ollamaBaseUrl: undefined },
 				bedrockOptions: { region: "us-east-1", profile: undefined },
 				qdrantUrl: "http://localhost:6333",
 				qdrantApiKey: "",
@@ -135,7 +135,7 @@ describe("CodeIndexConfigManager", () => {
 				embedderProvider: "openai",
 				modelId: "text-embedding-3-large",
 				openAiOptions: { openAiNativeApiKey: "test-openai-key" },
-				ollamaOptions: { ollamaBaseUrl: "" },
+				ollamaOptions: { ollamaBaseUrl: undefined },
 				qdrantUrl: "http://qdrant.local",
 				qdrantApiKey: "test-qdrant-key",
 				searchMinScore: 0.4,
@@ -168,7 +168,7 @@ describe("CodeIndexConfigManager", () => {
 				embedderProvider: "openai-compatible",
 				modelId: "text-embedding-3-large",
 				openAiOptions: { openAiNativeApiKey: "" },
-				ollamaOptions: { ollamaBaseUrl: "" },
+				ollamaOptions: { ollamaBaseUrl: undefined },
 				openAiCompatibleOptions: {
 					baseUrl: "https://api.example.com/v1",
 					apiKey: "test-openai-compatible-key",
@@ -206,7 +206,7 @@ describe("CodeIndexConfigManager", () => {
 				modelId: "custom-model",
 				modelDimension: 1024,
 				openAiOptions: { openAiNativeApiKey: "" },
-				ollamaOptions: { ollamaBaseUrl: "" },
+				ollamaOptions: { ollamaBaseUrl: undefined },
 				openAiCompatibleOptions: {
 					baseUrl: "https://api.example.com/v1",
 					apiKey: "test-openai-compatible-key",
@@ -243,7 +243,7 @@ describe("CodeIndexConfigManager", () => {
 				embedderProvider: "openai-compatible",
 				modelId: "custom-model",
 				openAiOptions: { openAiNativeApiKey: "" },
-				ollamaOptions: { ollamaBaseUrl: "" },
+				ollamaOptions: { ollamaBaseUrl: undefined },
 				openAiCompatibleOptions: {
 					baseUrl: "https://api.example.com/v1",
 					apiKey: "test-openai-compatible-key",
@@ -282,7 +282,7 @@ describe("CodeIndexConfigManager", () => {
 				modelId: "custom-model",
 				modelDimension: undefined, // Invalid dimension is converted to undefined
 				openAiOptions: { openAiNativeApiKey: "" },
-				ollamaOptions: { ollamaBaseUrl: "" },
+				ollamaOptions: { ollamaBaseUrl: undefined },
 				openAiCompatibleOptions: {
 					baseUrl: "https://api.example.com/v1",
 					apiKey: "test-openai-compatible-key",
@@ -1926,6 +1926,115 @@ describe("CodeIndexConfigManager", () => {
 					expect(result.requiresRestart).toBe(true)
 				})
 			})
+		})
+	})
+
+	describe("workspace-scoped config and secrets", () => {
+		let mockContext: any
+		let mockFolderUri: any
+		let workspaceConfigStore: Partial<Record<string, unknown>>
+		let workspaceSecretStore: Record<string, string>
+
+		const buildMockContextAndFolder = () => {
+			workspaceConfigStore = {}
+			workspaceSecretStore = {}
+			mockFolderUri = {
+				toString: (_skipEncoding?: boolean) => "file:///test/workspace",
+			}
+			mockContext = {
+				workspaceState: {
+					get: vi.fn((key: string) => workspaceConfigStore[key]),
+					update: vi.fn(async (key: string, value: unknown) => {
+						workspaceConfigStore[key] = value
+					}),
+				},
+				secrets: {
+					get: vi.fn(async (key: string) => workspaceSecretStore[key]),
+					store: vi.fn(async (key: string, value: string) => {
+						workspaceSecretStore[key] = value
+					}),
+					delete: vi.fn(async (key: string) => {
+						delete workspaceSecretStore[key]
+					}),
+				},
+			}
+		}
+
+		beforeEach(() => {
+			buildMockContextAndFolder()
+		})
+
+		it("reads workspace config from workspaceState using folderUri-scoped key", async () => {
+			workspaceConfigStore["codebaseIndexConfig:file:///test/workspace"] = {
+				codebaseIndexQdrantUrl: "http://workspace-qdrant:6333",
+			}
+			mockContextProxy.getGlobalState.mockReturnValue({
+				codebaseIndexQdrantUrl: "http://global-qdrant:6333",
+			})
+
+			configManager = new CodeIndexConfigManager(mockContextProxy, mockContext, mockFolderUri)
+			await configManager.loadConfiguration()
+
+			expect(configManager.qdrantConfig.url).toBe("http://workspace-qdrant:6333")
+			const sources = configManager.getConfigSources()
+			expect(sources.codebaseIndexQdrantUrl).toBe("workspace")
+		})
+
+		it("falls back to global config when workspace config has no value for a field", async () => {
+			workspaceConfigStore["codebaseIndexConfig:file:///test/workspace"] = {
+				codebaseIndexEmbedderModelId: "ws-model",
+			}
+			mockContextProxy.getGlobalState.mockReturnValue({
+				codebaseIndexQdrantUrl: "http://global-qdrant:6333",
+				codebaseIndexEmbedderModelId: "global-model",
+			})
+
+			configManager = new CodeIndexConfigManager(mockContextProxy, mockContext, mockFolderUri)
+			await configManager.loadConfiguration()
+
+			expect(configManager.qdrantConfig.url).toBe("http://global-qdrant:6333")
+			expect(configManager.currentModelId).toBe("ws-model")
+			const sources = configManager.getConfigSources()
+			expect(sources.codebaseIndexQdrantUrl).toBe("global")
+			expect(sources.codebaseIndexEmbedderModelId).toBe("workspace")
+		})
+
+		it("reads workspace-scoped secrets from SecretStorage under <field>:<folderUri>", async () => {
+			workspaceSecretStore["codeIndexQdrantApiKey:file:///test/workspace"] = "ws-secret"
+			mockContextProxy.getGlobalState.mockReturnValue({
+				codebaseIndexQdrantUrl: "http://q:6333",
+			})
+			setupSecretMocks({ codeIndexQdrantApiKey: "global-secret" })
+
+			configManager = new CodeIndexConfigManager(mockContextProxy, mockContext, mockFolderUri)
+			await configManager.loadConfiguration()
+
+			expect(configManager.qdrantConfig.apiKey).toBe("ws-secret")
+			const sources = configManager.getConfigSources()
+			expect(sources.codeIndexQdrantApiKey).toBe("workspace")
+		})
+
+		it("falls back to global secret when workspace-scoped secret is absent", async () => {
+			mockContextProxy.getGlobalState.mockReturnValue({
+				codebaseIndexQdrantUrl: "http://q:6333",
+			})
+			setupSecretMocks({ codeIndexQdrantApiKey: "global-secret" })
+
+			configManager = new CodeIndexConfigManager(mockContextProxy, mockContext, mockFolderUri)
+			await configManager.loadConfiguration()
+
+			expect(configManager.qdrantConfig.apiKey).toBe("global-secret")
+			const sources = configManager.getConfigSources()
+			expect(sources.codeIndexQdrantApiKey).toBe("global")
+		})
+
+		it("still works without context/folderUri (backward compat — global-only path)", async () => {
+			mockContextProxy.getGlobalState.mockReturnValue({
+				codebaseIndexQdrantUrl: "http://legacy:6333",
+			})
+			configManager = new CodeIndexConfigManager(mockContextProxy)
+			await configManager.loadConfiguration()
+			expect(configManager.qdrantConfig.url).toBe("http://legacy:6333")
 		})
 	})
 })
