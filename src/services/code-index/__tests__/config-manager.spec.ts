@@ -2037,4 +2037,46 @@ describe("CodeIndexConfigManager", () => {
 			expect(configManager.qdrantConfig.url).toBe("http://legacy:6333")
 		})
 	})
+
+	describe("dotfile layer (via _setDotfilesForTesting)", () => {
+		it("project dotfile overrides workspace and global config", async () => {
+			mockContextProxy.getGlobalState.mockReturnValue({
+				codebaseIndexQdrantUrl: "http://global:6333",
+				codebaseIndexEnabled: true,
+			})
+			configManager = new CodeIndexConfigManager(mockContextProxy)
+			configManager._setDotfilesForTesting({ codebaseIndexQdrantUrl: "http://project-dotfile:6333" })
+			await configManager.loadConfiguration()
+			expect(configManager.qdrantConfig.url).toBe("http://project-dotfile:6333")
+			expect(configManager.getConfigSources().codebaseIndexQdrantUrl).toBe("project-dotfile")
+		})
+
+		it("project dotfile codebaseIndexEnabled=false force-disables team-wide (over global enabled=true)", async () => {
+			mockContextProxy.getGlobalState.mockReturnValue({
+				codebaseIndexEnabled: true,
+				codebaseIndexQdrantUrl: "http://q:6333",
+			})
+			configManager = new CodeIndexConfigManager(mockContextProxy)
+			configManager._setDotfilesForTesting({ codebaseIndexEnabled: false })
+			await configManager.loadConfiguration()
+			expect(configManager.isFeatureEnabled).toBe(false)
+			expect(configManager.getConfigSources().codebaseIndexEnabled).toBe("project-dotfile")
+		})
+
+		it("global dotfile fills in gaps when project dotfile doesn't cover a field", async () => {
+			mockContextProxy.getGlobalState.mockReturnValue({
+				codebaseIndexQdrantUrl: "http://globalstate:6333",
+			})
+			configManager = new CodeIndexConfigManager(mockContextProxy)
+			configManager._setDotfilesForTesting(
+				{ codebaseIndexEmbedderModelId: "project-model" },
+				{ codebaseIndexQdrantUrl: "http://global-dotfile:6333" },
+			)
+			await configManager.loadConfiguration()
+			expect(configManager.qdrantConfig.url).toBe("http://global-dotfile:6333")
+			expect(configManager.currentModelId).toBe("project-model")
+			expect(configManager.getConfigSources().codebaseIndexQdrantUrl).toBe("global-dotfile")
+			expect(configManager.getConfigSources().codebaseIndexEmbedderModelId).toBe("project-dotfile")
+		})
+	})
 })

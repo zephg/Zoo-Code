@@ -15,6 +15,8 @@ import path from "path"
 import { t } from "../../i18n"
 import { TelemetryService } from "@roo-code/telemetry"
 import { TelemetryEventName } from "@roo-code/types"
+import { CODEBASE_INDEX_DOTFILE_FILENAME, getGlobalDotfilePath } from "./dotfile-loader"
+import { getGlobalRooDirectory } from "../roo-config"
 
 export class CodeIndexManager {
 	// --- Singleton Implementation ---
@@ -30,6 +32,10 @@ export class CodeIndexManager {
 
 	// Flag to prevent race conditions during error recovery
 	private _isRecoveringFromError = false
+
+	// Disposables for .roo/codebase-index.json watchers (project-local + user-global).
+	// Populated on first initialize() and released in dispose().
+	private _dotfileWatchers: vscode.Disposable[] = []
 
 	public static getInstance(context: vscode.ExtensionContext, workspacePath?: string): CodeIndexManager | undefined {
 		// Resolve the workspace folder to get both fsPath and the real URI
@@ -163,10 +169,17 @@ export class CodeIndexManager {
 	public async initialize(contextProxy: ContextProxy): Promise<{ requiresRestart: boolean }> {
 		// 1. ConfigManager Initialization and Configuration Loading
 		if (!this._configManager) {
-			this._configManager = new CodeIndexConfigManager(contextProxy, this.context, this._folderUri)
+			this._configManager = new CodeIndexConfigManager(
+				contextProxy,
+				this.context,
+				this._folderUri,
+				this.workspacePath,
+			)
+			this._setupDotfileWatchers()
 		}
 		// Load configuration once to get current state and restart requirements
 		const { requiresRestart } = await this._configManager.loadConfiguration()
+		this._surfaceDotfileWarnings()
 
 		// 2. Check if feature is enabled
 		if (!this.isFeatureEnabled) {
@@ -307,6 +320,90 @@ export class CodeIndexManager {
 	public dispose(): void {
 		this.stopIndexing()
 		this._stateManager.dispose()
+		for (const watcher of this._dotfileWatchers) {
+			try {
+				watcher.dispose()
+			} catch {
+				// best-effort
+			}
+		}
+		this._dotfileWatchers = []
+	}
+
+	/**
+	 * Sets up VS Code file-system watchers for both dotfiles — project-local
+	 * ({workspace}/.roo/codebase-index.json) and user-global
+	 * (~/.roo/codebase-index.json). Any change/create/delete event re-runs
+	 * handleSettingsChange so the resolver picks up the new values.
+	 *
+	 * Using `createFileSystemWatcher` with a RelativePattern for the global
+	 * location lets us observe a file outside the workspace.
+	 */
+	private _setupDotfileWatchers(): void {
+		// Clean up any prior watchers first (idempotent — safe to re-call).
+		for (const w of this._dotfileWatchers) {
+			try {
+				w.dispose()
+			} catch {
+				// best-effort
+			}
+		}
+		this._dotfileWatchers = []
+
+		const handleChange = async () => {
+			try {
+				await this.handleSettingsChange()
+			} catch (error) {
+				console.error("[CodeIndexManager] Error handling dotfile change:", error)
+			}
+		}
+
+		// Project-local dotfile.
+		if (this.workspacePath) {
+			const projectPattern = new vscode.RelativePattern(
+				vscode.Uri.file(path.join(this.workspacePath, ".roo")),
+				CODEBASE_INDEX_DOTFILE_FILENAME,
+			)
+			const projectWatcher = vscode.workspace.createFileSystemWatcher(projectPattern)
+			this._dotfileWatchers.push(
+				projectWatcher,
+				projectWatcher.onDidChange(handleChange),
+				projectWatcher.onDidCreate(handleChange),
+				projectWatcher.onDidDelete(handleChange),
+			)
+		}
+
+		// User-global dotfile.
+		try {
+			const globalPattern = new vscode.RelativePattern(
+				vscode.Uri.file(getGlobalRooDirectory()),
+				CODEBASE_INDEX_DOTFILE_FILENAME,
+			)
+			const globalWatcher = vscode.workspace.createFileSystemWatcher(globalPattern)
+			this._dotfileWatchers.push(
+				globalWatcher,
+				globalWatcher.onDidChange(handleChange),
+				globalWatcher.onDidCreate(handleChange),
+				globalWatcher.onDidDelete(handleChange),
+			)
+		} catch (error) {
+			console.error(`[CodeIndexManager] Failed to register watcher for ${getGlobalDotfilePath()}:`, error)
+		}
+	}
+
+	/**
+	 * Drains dotfile warnings from the config manager and shows one VS Code
+	 * toast per warning. Called after every loadConfiguration so users see
+	 * actionable feedback (e.g. "secrets stripped from dotfile"). Defensive
+	 * because some tests replace `_configManager` with a minimal stub.
+	 */
+	private _surfaceDotfileWarnings(): void {
+		const drain = this._configManager?.drainDotfileWarnings
+		if (typeof drain !== "function") return
+		const messages = drain.call(this._configManager)
+		for (const message of messages) {
+			vscode.window.showWarningMessage(message)
+		}
 	}
 
 	/**
@@ -438,6 +535,7 @@ export class CodeIndexManager {
 	public async handleSettingsChange(): Promise<void> {
 		if (this._configManager) {
 			const { requiresRestart } = await this._configManager.loadConfiguration()
+			this._surfaceDotfileWarnings()
 
 			const isFeatureEnabled = this.isFeatureEnabled
 			const isFeatureConfigured = this.isFeatureConfigured

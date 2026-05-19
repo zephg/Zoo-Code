@@ -70,7 +70,9 @@ vi.mock("../../../utils/path", () => {
 // Mock fs/promises for RooIgnoreController
 vi.mock("fs/promises", () => ({
 	default: {
-		readFile: vi.fn().mockRejectedValue(new Error("File not found")), // Simulate no .gitignore/.rooignore
+		// Simulate "no .gitignore / .rooignore / dotfile present" using a real ENOENT shape so
+		// helpers like readFileIfExists treat it as missing and return null instead of rethrowing.
+		readFile: vi.fn().mockRejectedValue(Object.assign(new Error("File not found"), { code: "ENOENT" })),
 	},
 }))
 

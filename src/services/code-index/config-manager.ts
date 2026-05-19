@@ -1,6 +1,11 @@
 import * as vscode from "vscode"
 
-import { CODEBASE_INDEX_SECRET_FIELDS, type CodebaseIndexConfig, type CodebaseIndexProvider } from "@roo-code/types"
+import {
+	CODEBASE_INDEX_SECRET_FIELDS,
+	type CodebaseIndexConfig,
+	type CodebaseIndexDotfile,
+	type CodebaseIndexProvider,
+} from "@roo-code/types"
 
 import { ApiHandlerOptions } from "../../shared/api"
 import { ContextProxy } from "../../core/config/ContextProxy"
@@ -9,6 +14,7 @@ import { CodeIndexConfig, PreviousConfigSnapshot } from "./interfaces/config"
 import { DEFAULT_SEARCH_MIN_SCORE, DEFAULT_MAX_SEARCH_RESULTS } from "./constants"
 import { getDefaultModelId, getModelDimension, getModelScoreThreshold } from "../../shared/embeddingModels"
 import { resolveCodeIndexConfig, type ResolvedConfigSources } from "./config-resolver"
+import { formatDotfileWarning, loadGlobalDotfile, loadProjectDotfile, type DotfileWarning } from "./dotfile-loader"
 
 /**
  * Workspace-scoped keys used to separate per-workspace overrides from global state.
@@ -53,12 +59,29 @@ export class CodeIndexConfigManager {
 	private _configSources: ResolvedConfigSources = {}
 	/** Workspace-scoped secret values. Filled asynchronously in loadConfiguration(); empty until then. */
 	private _workspaceScopedSecrets: Partial<CodebaseIndexProvider> = {}
+	/** Last-parsed project dotfile, if any. Filled asynchronously in loadConfiguration(). */
+	private _projectDotfile: CodebaseIndexDotfile | null = null
+	/** Last-parsed global dotfile, if any. Filled asynchronously in loadConfiguration(). */
+	private _globalDotfile: CodebaseIndexDotfile | null = null
+	/** Warnings from the most recent dotfile load; consumed once by the caller of loadConfiguration. */
+	private _pendingDotfileWarnings: Array<{ filePath: string; warning: DotfileWarning }> = []
+
+	/**
+	 * When false, `_refreshDotfiles` becomes a no-op. Tests can pass `false` so the
+	 * user's real `~/.roo/codebase-index.json` can't bleed into specs; production
+	 * callers always leave the default `true`. Also flipped to `false` automatically
+	 * by `_setDotfilesForTesting` so injected values aren't clobbered.
+	 */
+	private loadDotfilesFromDisk: boolean
 
 	constructor(
 		private readonly contextProxy: ContextProxy,
 		private readonly context?: vscode.ExtensionContext,
 		private readonly folderUri?: vscode.Uri,
+		private readonly workspacePath?: string,
+		loadDotfilesFromDisk: boolean = true,
 	) {
+		this.loadDotfilesFromDisk = loadDotfilesFromDisk
 		// Initialize with current configuration to avoid false restart triggers.
 		// Workspace-scoped secrets are NOT loaded here (requires async); they get layered
 		// in on the first loadConfiguration() call. The first call may register a benign
@@ -98,6 +121,63 @@ export class CodeIndexConfigManager {
 	}
 
 	/**
+	 * Async refresh of both dotfiles (project-local and user-global).
+	 * Collects warnings for the caller to surface once per loadConfiguration.
+	 *
+	 * Skipped entirely when `loadDotfilesFromDisk` is false (default true; tests
+	 * pass false) so the user's real `~/.roo/codebase-index.json` can't leak into
+	 * spec state. Tests that exercise dotfile behavior should call
+	 * `_setDotfilesForTesting` directly.
+	 */
+	private async _refreshDotfiles(): Promise<void> {
+		this._pendingDotfileWarnings = []
+		if (!this.loadDotfilesFromDisk) {
+			return
+		}
+		if (this.workspacePath) {
+			const project = await loadProjectDotfile(this.workspacePath)
+			this._projectDotfile = project.data
+			for (const warning of project.warnings) {
+				this._pendingDotfileWarnings.push({ filePath: project.filePath, warning })
+			}
+		} else {
+			this._projectDotfile = null
+		}
+		const global = await loadGlobalDotfile()
+		this._globalDotfile = global.data
+		for (const warning of global.warnings) {
+			this._pendingDotfileWarnings.push({ filePath: global.filePath, warning })
+		}
+	}
+
+	/**
+	 * Test-only hook to inject dotfile layers without touching the filesystem.
+	 * The production path always reads from disk via `_refreshDotfiles`.
+	 * Also locks future `_refreshDotfiles` calls to no-op so the injected values
+	 * survive a subsequent `loadConfiguration()`.
+	 */
+	public _setDotfilesForTesting(
+		project: CodebaseIndexDotfile | null,
+		global: CodebaseIndexDotfile | null = null,
+	): void {
+		this._projectDotfile = project
+		this._globalDotfile = global
+		this.loadDotfilesFromDisk = false
+	}
+
+	/**
+	 * Consumes (and returns) warnings from the most recent dotfile refresh.
+	 * The manager layer surfaces these as VS Code toasts exactly once per change.
+	 */
+	public drainDotfileWarnings(): string[] {
+		const messages = this._pendingDotfileWarnings.map(({ filePath, warning }) =>
+			formatDotfileWarning(filePath, warning),
+		)
+		this._pendingDotfileWarnings = []
+		return messages
+	}
+
+	/**
 	 * Async refresh of workspace-scoped secrets from VS Code SecretStorage.
 	 * Called from loadConfiguration() before _loadAndSetConfiguration() runs.
 	 */
@@ -128,12 +208,11 @@ export class CodeIndexConfigManager {
 	/**
 	 * Private method that handles loading configuration from storage and updating instance variables.
 	 * Resolves the effective config via the precedence chain:
-	 *   workspaceState → globalState → defaults
+	 *   projectDotfile → globalDotfile → workspaceState → globalState → defaults
 	 *
-	 * (Dotfile layers wire in during phase 3; until then they're undefined.)
 	 * Workspace-scoped secrets must be refreshed via _refreshWorkspaceScopedSecrets()
-	 * before this is called in the async path; the sync constructor path just reads
-	 * whatever is in the cache (initially empty).
+	 * and dotfiles via _refreshDotfiles() before this is called in the async path;
+	 * the sync constructor path just reads whatever is in the cache (initially empty).
 	 */
 	private _loadAndSetConfiguration(): void {
 		const rawGlobalConfig = this.contextProxy?.getGlobalState("codebaseIndexConfig") as
@@ -156,6 +235,8 @@ export class CodeIndexConfigManager {
 		const workspaceSecrets = this._workspaceScopedSecrets
 
 		const { config, sources } = resolveCodeIndexConfig({
+			projectDotfile: this._projectDotfile,
+			globalDotfile: this._globalDotfile,
 			workspaceConfig,
 			globalConfig,
 			workspaceSecrets,
@@ -269,6 +350,7 @@ export class CodeIndexConfigManager {
 		// Refresh secrets from VSCode storage to ensure we have the latest values
 		await this.contextProxy.refreshSecrets()
 		await this._refreshWorkspaceScopedSecrets()
+		await this._refreshDotfiles()
 
 		// Load new configuration from storage and update instance variables
 		this._loadAndSetConfiguration()
