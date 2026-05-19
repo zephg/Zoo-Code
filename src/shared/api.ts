@@ -56,6 +56,10 @@ export const shouldUseReasoningEffort = ({
 	model: ModelInfo
 	settings?: ProviderSettings
 }): boolean => {
+	// Required-reasoning models (e.g. Anthropic Opus 4.6/4.7) always emit reasoning
+	// regardless of the user's enable toggle — the API rejects requests otherwise.
+	if (model.requiredReasoningEffort) return true
+
 	// Explicit off switch
 	if (settings?.enableReasoningEffort === false) return false
 

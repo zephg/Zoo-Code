@@ -17,8 +17,18 @@ export type RooReasoningParams = {
 	effort?: ReasoningEffortExtended
 }
 
-export type AnthropicReasoningParams = BetaThinkingConfigParam
-export type AnthropicProviderReasoningParams = AnthropicReasoningParams | { type: "adaptive" }
+// Adaptive thinking shape for Opus 4.6/4.7; not yet in @anthropic-ai/sdk types.
+// TODO: remove once the pinned SDK exposes this union.
+export type AdaptiveThinkingParam = { type: "adaptive"; display?: "summarized" | "omitted" }
+
+// Anthropic reasoning payload returned by the helpers. May carry both a `thinking`
+// directive AND an `output_config.effort` for adaptive-thinking models (Opus 4.6/4.7),
+// or just a legacy `thinking` budget for older hybrid-reasoning models.
+export type AnthropicReasoningParams = {
+	thinking?: BetaThinkingConfigParam | AdaptiveThinkingParam
+	output_config?: { effort: ReasoningEffortExtended }
+}
+export type AnthropicProviderReasoningParams = AnthropicReasoningParams
 
 export type OpenAiReasoningParams = { reasoning_effort: OpenAI.Chat.ChatCompletionCreateParams["reasoning_effort"] }
 
@@ -108,21 +118,39 @@ export const getRooReasoning = ({
 export const getAnthropicReasoning = ({
 	model,
 	reasoningBudget,
+	reasoningEffort,
 	settings,
-}: GetModelReasoningOptions): AnthropicReasoningParams | undefined =>
-	shouldUseReasoningBudget({ model, settings }) ? { type: "enabled", budget_tokens: reasoningBudget! } : undefined
-
-export const getAnthropicProviderReasoning = ({
-	model,
-	reasoningBudget,
-	settings,
-}: GetModelReasoningOptions): AnthropicProviderReasoningParams | undefined => {
-	if (model.supportsReasoningBinary && settings.enableReasoningEffort) {
-		return { type: "adaptive" }
+}: GetModelReasoningOptions): AnthropicReasoningParams | undefined => {
+	// Effort-based (adaptive) path: Opus 4.6 / 4.7 and any future Anthropic model
+	// that explicitly declares supportsReasoningEffort without supportsReasoningBudget.
+	// `reasoningEffort` has already been normalized by getModelParams to either a valid
+	// capability value or the model default (never "disable", never out-of-array).
+	if (
+		!!model.supportsReasoningEffort &&
+		!model.supportsReasoningBudget &&
+		shouldUseReasoningEffort({ model, settings })
+	) {
+		const effort = (reasoningEffort ?? (model.reasoningEffort as ReasoningEffortExtended | undefined)) as
+			| ReasoningEffortExtended
+			| undefined
+		if (!effort) return undefined
+		const display = settings?.reasoningDisplay
+		const thinking: AdaptiveThinkingParam =
+			display === "summarized" ? { type: "adaptive", display } : { type: "adaptive" }
+		return { thinking, output_config: { effort } }
 	}
 
-	return getAnthropicReasoning({ model, reasoningBudget, reasoningEffort: undefined, settings })
+	// Legacy budget path (Sonnet 3.7, etc.)
+	if (shouldUseReasoningBudget({ model, settings })) {
+		return { thinking: { type: "enabled", budget_tokens: reasoningBudget! } }
+	}
+
+	return undefined
 }
+
+export const getAnthropicProviderReasoning = (
+	opts: GetModelReasoningOptions,
+): AnthropicProviderReasoningParams | undefined => getAnthropicReasoning(opts)
 
 export const getOpenAiReasoning = ({
 	model,

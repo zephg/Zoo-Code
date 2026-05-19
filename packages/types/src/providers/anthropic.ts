@@ -71,42 +71,45 @@ export const anthropicModels = {
 		],
 	},
 	"claude-opus-4-6": {
-		maxTokens: 128_000, // Overridden to 8k if `enableReasoningEffort` is false.
-		contextWindow: 200_000, // Default 200K, extendable to 1M with beta flag
-		supportsImages: true,
-		supportsPromptCache: true,
-		inputPrice: 5.0, // $5 per million input tokens (≤200K context)
-		outputPrice: 25.0, // $25 per million output tokens (≤200K context)
-		cacheWritesPrice: 6.25, // $6.25 per million tokens
-		cacheReadsPrice: 0.5, // $0.50 per million tokens
-		supportsReasoningBudget: true,
-		// Tiered pricing for extended context (requires beta flag)
-		tiers: [
-			{
-				contextWindow: 1_000_000, // 1M tokens with beta flag
-				inputPrice: 10.0, // $10 per million input tokens (>200K context)
-				outputPrice: 37.5, // $37.50 per million output tokens (>200K context)
-				cacheWritesPrice: 12.5, // $12.50 per million tokens (>200K context)
-				cacheReadsPrice: 1.0, // $1.00 per million tokens (>200K context)
-			},
-		],
-	},
-	"claude-opus-4-7": {
-		maxTokens: 128_000, // Overridden to 8k if `enableReasoningEffort` is false.
+		maxTokens: 128_000,
+		// Native 1M-token context window; flat pricing.
+		// Source: https://platform.claude.com/docs/en/about-claude/pricing#long-context-pricing
 		contextWindow: 1_000_000,
 		supportsImages: true,
 		supportsPromptCache: true,
-		inputPrice: 5.0, // $5 per million input tokens
-		outputPrice: 25.0, // $25 per million output tokens
-		cacheWritesPrice: 6.25, // $6.25 per million tokens
-		cacheReadsPrice: 0.5, // $0.50 per million tokens
-		// Keep the hybrid-reasoning capability so Anthropic token-cap handling and
-		// stored max-token overrides behave the same as before.
-		supportsReasoningBudget: true,
-		// Direct Anthropic Opus 4.7 no longer accepts budget-token thinking payloads,
-		// so the UI should still present a simple on/off toggle on this provider path.
-		supportsReasoningBinary: true,
+		inputPrice: 5.0,
+		outputPrice: 25.0,
+		cacheWritesPrice: 6.25,
+		cacheReadsPrice: 0.5,
+		// Anthropic deprecated budget_tokens on Opus 4.6/4.7; adaptive thinking + effort replaces it.
+		// Adaptive thinking constrains temperature server-side, so we omit temperature.
+		// Per https://platform.claude.com/docs/en/build-with-claude/effort, xhigh is Opus 4.7-only.
+		supportsReasoningEffort: ["low", "medium", "high", "max"],
+		requiredReasoningEffort: true,
+		reasoningEffort: "high",
 		supportsTemperature: false,
+		supportsReasoningDisplay: true,
+	},
+	"claude-opus-4-7": {
+		maxTokens: 128_000,
+		// Native 1M-token context window; flat pricing.
+		// Source: https://platform.claude.com/docs/en/about-claude/pricing#long-context-pricing
+		contextWindow: 1_000_000,
+		supportsImages: true,
+		supportsPromptCache: true,
+		inputPrice: 5.0,
+		outputPrice: 25.0,
+		cacheWritesPrice: 6.25,
+		cacheReadsPrice: 0.5,
+		// Opus 4.7 rejects budget_tokens entirely; adaptive thinking + effort is the only path.
+		// Per https://platform.claude.com/docs/en/build-with-claude/effort:
+		//   - xhigh is the recommended starting point for coding/agentic work on 4.7
+		//   - API default is `high`; we default to `xhigh` to match Anthropic's recommendation
+		supportsReasoningEffort: ["low", "medium", "high", "xhigh", "max"],
+		requiredReasoningEffort: true,
+		reasoningEffort: "xhigh",
+		supportsTemperature: false,
+		supportsReasoningDisplay: true,
 	},
 	"claude-opus-4-5-20251101": {
 		maxTokens: 32_000, // Overridden to 8k if `enableReasoningEffort` is false.

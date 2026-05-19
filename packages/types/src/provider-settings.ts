@@ -191,6 +191,9 @@ const baseProviderSettingsSchema = z.object({
 	// Model reasoning.
 	enableReasoningEffort: z.boolean().optional(),
 	reasoningEffort: reasoningEffortSettingSchema.optional(),
+	// Adaptive thinking display mode for Anthropic Opus 4.6/4.7 (effort-based).
+	// "summarized" surfaces a thinking trace in the UI; "omitted" hides it.
+	reasoningDisplay: z.enum(["summarized", "omitted"]).optional(),
 	modelMaxTokens: z.number().optional(),
 	modelMaxThinkingTokens: z.number().optional(),
 

@@ -61,27 +61,23 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 			temperature,
 			info,
 			reasoningBudget,
+			reasoningEffort,
 		} = this.getModel()
-		const thinking = getAnthropicProviderReasoning({
+		const reasoning = getAnthropicProviderReasoning({
 			model: info,
 			reasoningBudget,
-			reasoningEffort: undefined,
+			reasoningEffort,
 			settings: this.options,
 		})
+		const thinking = reasoning?.thinking
+		const outputConfig = reasoning?.output_config
 
 		// Filter out non-Anthropic blocks (reasoning, thoughtSignature, etc.) before sending to the API
 		const sanitizedMessages = filterNonAnthropicBlocks(messages)
 
-		// Add 1M context beta flag if enabled for supported models (Claude Sonnet 4/4.5/4.6, Opus 4.6)
-		if (
-			(modelId === "claude-sonnet-4-20250514" ||
-				modelId === "claude-sonnet-4-5" ||
-				modelId === "claude-sonnet-4-6" ||
-				modelId === "claude-opus-4-6") &&
-			this.options.anthropicBeta1MContext
-		) {
-			betas.push("context-1m-2025-08-07")
-		}
+		// 1M context window is now native on Sonnet 4.6, Opus 4.6, and Opus 4.7 at standard pricing.
+		// The `context-1m-2025-08-07` beta header was retired by Anthropic on 2026-04-30.
+		// Sources: platform.claude.com/docs/en/about-claude/pricing#long-context-pricing
 
 		const nativeToolParams = {
 			tools: convertOpenAIToolsToAnthropic(metadata?.tools ?? []),
@@ -127,6 +123,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 						max_tokens: maxTokens ?? ANTHROPIC_DEFAULT_MAX_TOKENS,
 						temperature,
 						thinking,
+						...(outputConfig ? { output_config: outputConfig } : {}),
 						// Setting cache breakpoint for system prompt so new tasks can reuse it.
 						system: [{ text: systemPrompt, type: "text", cache_control: cacheControl }],
 						messages: sanitizedMessages.map((message, index) => {
@@ -198,6 +195,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 						max_tokens: maxTokens ?? ANTHROPIC_DEFAULT_MAX_TOKENS,
 						temperature,
 						thinking,
+						...(outputConfig ? { output_config: outputConfig } : {}),
 						system: [{ text: systemPrompt, type: "text" }],
 						messages: sanitizedMessages,
 						stream: true,
