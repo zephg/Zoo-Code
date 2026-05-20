@@ -104,6 +104,18 @@
 	},
 	"codeIndex": {
 		"title": "Indexació de codi",
+		"scope": {
+			"label": "Save changes to",
+			"global": "Global",
+			"workspace": "This workspace",
+			"descriptionGlobal": "Settings apply to all workspaces that don't have their own override.",
+			"descriptionWorkspace": "Settings apply only to this workspace. Workspace values override global ones."
+		},
+		"pinned": {
+			"label": "Pinned",
+			"byProjectDotfile": "Set by .roo/codebase-index.json in this project. Edit that file to change.",
+			"byGlobalDotfile": "Set by ~/.roo/codebase-index.json. Edit that file to change."
+		},
 		"enableLabel": "Habilitar indexació de codi",
 		"enableDescription": "Habilita la indexació de codi per millorar la cerca i la comprensió del context",
 		"providerLabel": "Proveïdor d'embeddings",

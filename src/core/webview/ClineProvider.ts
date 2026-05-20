@@ -2281,20 +2281,53 @@ export class ClineProvider
 			organizationSettingsVersion,
 			customCondensingPrompt,
 			codebaseIndexModels: codebaseIndexModels ?? EMBEDDING_MODEL_PROFILES,
-			codebaseIndexConfig: {
-				codebaseIndexEnabled: codebaseIndexConfig?.codebaseIndexEnabled ?? false,
-				codebaseIndexQdrantUrl: codebaseIndexConfig?.codebaseIndexQdrantUrl ?? "http://localhost:6333",
-				codebaseIndexEmbedderProvider: codebaseIndexConfig?.codebaseIndexEmbedderProvider ?? "openai",
-				codebaseIndexEmbedderBaseUrl: codebaseIndexConfig?.codebaseIndexEmbedderBaseUrl ?? "",
-				codebaseIndexEmbedderModelId: codebaseIndexConfig?.codebaseIndexEmbedderModelId ?? "",
-				codebaseIndexEmbedderModelDimension: codebaseIndexConfig?.codebaseIndexEmbedderModelDimension ?? 1536,
-				codebaseIndexOpenAiCompatibleBaseUrl: codebaseIndexConfig?.codebaseIndexOpenAiCompatibleBaseUrl,
-				codebaseIndexSearchMaxResults: codebaseIndexConfig?.codebaseIndexSearchMaxResults,
-				codebaseIndexSearchMinScore: codebaseIndexConfig?.codebaseIndexSearchMinScore,
-				codebaseIndexBedrockRegion: codebaseIndexConfig?.codebaseIndexBedrockRegion,
-				codebaseIndexBedrockProfile: codebaseIndexConfig?.codebaseIndexBedrockProfile,
-				codebaseIndexOpenRouterSpecificProvider: codebaseIndexConfig?.codebaseIndexOpenRouterSpecificProvider,
-			},
+			codebaseIndexConfig: (() => {
+				// Overlay the workspace's resolved (dotfile → workspace → global) config onto
+				// the globalState baseline so the UI shows what's *actually in effect* — not
+				// just what's stored globally. Sources map rides alongside so the UI can pin
+				// dotfile-originated fields as read-only.
+				const manager = this.getCurrentWorkspaceCodeIndexManager()
+				const resolved = manager?.getResolvedConfigNonSecrets() ?? {}
+				return {
+					codebaseIndexEnabled:
+						resolved.codebaseIndexEnabled ?? codebaseIndexConfig?.codebaseIndexEnabled ?? false,
+					codebaseIndexQdrantUrl:
+						resolved.codebaseIndexQdrantUrl ??
+						codebaseIndexConfig?.codebaseIndexQdrantUrl ??
+						"http://localhost:6333",
+					codebaseIndexEmbedderProvider:
+						resolved.codebaseIndexEmbedderProvider ??
+						codebaseIndexConfig?.codebaseIndexEmbedderProvider ??
+						"openai",
+					codebaseIndexEmbedderBaseUrl:
+						resolved.codebaseIndexEmbedderBaseUrl ??
+						codebaseIndexConfig?.codebaseIndexEmbedderBaseUrl ??
+						"",
+					codebaseIndexEmbedderModelId:
+						resolved.codebaseIndexEmbedderModelId ??
+						codebaseIndexConfig?.codebaseIndexEmbedderModelId ??
+						"",
+					codebaseIndexEmbedderModelDimension:
+						resolved.codebaseIndexEmbedderModelDimension ??
+						codebaseIndexConfig?.codebaseIndexEmbedderModelDimension ??
+						1536,
+					codebaseIndexOpenAiCompatibleBaseUrl:
+						resolved.codebaseIndexOpenAiCompatibleBaseUrl ??
+						codebaseIndexConfig?.codebaseIndexOpenAiCompatibleBaseUrl,
+					codebaseIndexSearchMaxResults:
+						resolved.codebaseIndexSearchMaxResults ?? codebaseIndexConfig?.codebaseIndexSearchMaxResults,
+					codebaseIndexSearchMinScore:
+						resolved.codebaseIndexSearchMinScore ?? codebaseIndexConfig?.codebaseIndexSearchMinScore,
+					codebaseIndexBedrockRegion:
+						resolved.codebaseIndexBedrockRegion ?? codebaseIndexConfig?.codebaseIndexBedrockRegion,
+					codebaseIndexBedrockProfile:
+						resolved.codebaseIndexBedrockProfile ?? codebaseIndexConfig?.codebaseIndexBedrockProfile,
+					codebaseIndexOpenRouterSpecificProvider:
+						resolved.codebaseIndexOpenRouterSpecificProvider ??
+						codebaseIndexConfig?.codebaseIndexOpenRouterSpecificProvider,
+				}
+			})(),
+			codebaseIndexConfigSources: this.getCurrentWorkspaceCodeIndexManager()?.getConfigSources() ?? {},
 			// Phase 1 cloud removal: do not let Cloud-auth MDM enforcement force login-only UI flows.
 			mdmCompliant: undefined,
 			profileThresholds: profileThresholds ?? {},

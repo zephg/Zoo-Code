@@ -114,6 +114,18 @@
 	},
 	"codeIndex": {
 		"title": "程式碼庫索引",
+		"scope": {
+			"label": "Save changes to",
+			"global": "Global",
+			"workspace": "This workspace",
+			"descriptionGlobal": "Settings apply to all workspaces that don't have their own override.",
+			"descriptionWorkspace": "Settings apply only to this workspace. Workspace values override global ones."
+		},
+		"pinned": {
+			"label": "Pinned",
+			"byProjectDotfile": "Set by .roo/codebase-index.json in this project. Edit that file to change.",
+			"byGlobalDotfile": "Set by ~/.roo/codebase-index.json. Edit that file to change."
+		},
 		"description": "設定程式碼庫索引設定以啟用專案的語意搜尋。<0>了解更多</0>",
 		"statusTitle": "狀態",
 		"enableLabel": "啟用程式碼庫索引",

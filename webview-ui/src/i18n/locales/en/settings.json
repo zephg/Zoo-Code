@@ -169,6 +169,18 @@
 		"title": "Codebase Indexing",
 		"description": "Configure codebase indexing settings to enable semantic search of your project. <0>Learn more</0>",
 		"statusTitle": "Status",
+		"scope": {
+			"label": "Save changes to",
+			"global": "Global",
+			"workspace": "This workspace",
+			"descriptionGlobal": "Settings apply to all workspaces that don't have their own override.",
+			"descriptionWorkspace": "Settings apply only to this workspace. Workspace values override global ones."
+		},
+		"pinned": {
+			"label": "Pinned",
+			"byProjectDotfile": "Set by .roo/codebase-index.json in this project. Edit that file to change.",
+			"byGlobalDotfile": "Set by ~/.roo/codebase-index.json. Edit that file to change."
+		},
 		"enableLabel": "Enable Codebase Indexing",
 		"enableDescription": "Enable code indexing for improved search and context understanding",
 		"settingsTitle": "Indexing Settings",

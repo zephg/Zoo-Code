@@ -88,3 +88,62 @@ export const codebaseIndexProviderSchema = z.object({
 })
 
 export type CodebaseIndexProvider = z.infer<typeof codebaseIndexProviderSchema>
+
+/**
+ * CodebaseIndexWorkspaceConfig
+ *
+ * Shape stored in VS Code workspaceState when the user picks scope=workspace in the UI.
+ * Identical shape to CodebaseIndexConfig (all fields already optional), but exported
+ * separately so the intent is explicit at call sites and so we can diverge if workspace
+ * needs ever differ from global.
+ */
+export const codebaseIndexWorkspaceConfigSchema = codebaseIndexConfigSchema
+export type CodebaseIndexWorkspaceConfig = z.infer<typeof codebaseIndexWorkspaceConfigSchema>
+
+/**
+ * Secret field names that must never appear in the `.roo/codebase-index.json` dotfile.
+ * The dotfile is safe-to-commit; secrets belong in VS Code SecretStorage only.
+ */
+export const CODEBASE_INDEX_SECRET_FIELDS = [
+	"codeIndexOpenAiKey",
+	"codeIndexQdrantApiKey",
+	"codebaseIndexOpenAiCompatibleApiKey",
+	"codebaseIndexGeminiApiKey",
+	"codebaseIndexMistralApiKey",
+	"codebaseIndexVercelAiGatewayApiKey",
+	"codebaseIndexOpenRouterApiKey",
+] as const
+
+/**
+ * CodebaseIndexDotfile
+ *
+ * Schema for `.roo/codebase-index.json` (project-local or ~/.roo/ global).
+ * Strict — extra fields (including secret fields) are rejected so the loader can
+ * surface a meaningful warning.
+ *
+ * `$schema` is allowed so editors can offer autocomplete.
+ */
+export const codebaseIndexDotfileSchema = z
+	.object({
+		$schema: z.string().optional(),
+		codebaseIndexEnabled: z.boolean().optional(),
+		codebaseIndexQdrantUrl: z.string().optional(),
+		codebaseIndexEmbedderProvider: codebaseIndexConfigSchema.shape.codebaseIndexEmbedderProvider,
+		codebaseIndexEmbedderBaseUrl: z.string().optional(),
+		codebaseIndexEmbedderModelId: z.string().optional(),
+		codebaseIndexEmbedderModelDimension: z.number().optional(),
+		codebaseIndexSearchMinScore: z.number().min(0).max(1).optional(),
+		codebaseIndexSearchMaxResults: z
+			.number()
+			.min(CODEBASE_INDEX_DEFAULTS.MIN_SEARCH_RESULTS)
+			.max(CODEBASE_INDEX_DEFAULTS.MAX_SEARCH_RESULTS)
+			.optional(),
+		codebaseIndexOpenAiCompatibleBaseUrl: z.string().optional(),
+		codebaseIndexOpenAiCompatibleModelDimension: z.number().optional(),
+		codebaseIndexBedrockRegion: z.string().optional(),
+		codebaseIndexBedrockProfile: z.string().optional(),
+		codebaseIndexOpenRouterSpecificProvider: z.string().optional(),
+	})
+	.strict()
+
+export type CodebaseIndexDotfile = z.infer<typeof codebaseIndexDotfileSchema>

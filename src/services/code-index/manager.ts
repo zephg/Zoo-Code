@@ -15,6 +15,9 @@ import path from "path"
 import { t } from "../../i18n"
 import { TelemetryService } from "@roo-code/telemetry"
 import { TelemetryEventName } from "@roo-code/types"
+import { CODEBASE_INDEX_DOTFILE_FILENAME, getGlobalDotfilePath } from "./dotfile-loader"
+import { getGlobalRooDirectory } from "../roo-config"
+import type { CodebaseIndexConfig } from "@roo-code/types"
 
 export class CodeIndexManager {
 	// --- Singleton Implementation ---
@@ -30,6 +33,10 @@ export class CodeIndexManager {
 
 	// Flag to prevent race conditions during error recovery
 	private _isRecoveringFromError = false
+
+	// Disposables for .roo/codebase-index.json watchers (project-local + user-global).
+	// Populated on first initialize() and released in dispose().
+	private _dotfileWatchers: vscode.Disposable[] = []
 
 	public static getInstance(context: vscode.ExtensionContext, workspacePath?: string): CodeIndexManager | undefined {
 		// Resolve the workspace folder to get both fsPath and the real URI
@@ -120,6 +127,45 @@ export class CodeIndexManager {
 		await this.context.globalState.update("codeIndexAutoEnableDefault", enabled)
 	}
 
+	/**
+	 * Real folder URI for this workspace instance. Exposed so callers (like
+	 * webviewMessageHandler saveCodeIndexSettingsAtomic) can compose the same
+	 * workspace-scoped keys that CodeIndexConfigManager uses internally.
+	 */
+	public get folderUri(): vscode.Uri {
+		return this._folderUri
+	}
+
+	/**
+	 * Source-of-truth map for resolved config fields. Used by the webview to
+	 * render "pinned by .roo/codebase-index.json" badges. Returns an empty
+	 * object when the config manager hasn't loaded yet.
+	 */
+	public getConfigSources() {
+		return this._configManager?.getConfigSources() ?? {}
+	}
+
+	/**
+	 * Non-secret subset of the resolved config, for inclusion in extension state.
+	 * Secrets are never shipped to the webview; the UI queries for secret presence
+	 * via the separate `requestCodeIndexSecretStatus` path.
+	 */
+	public getResolvedConfigNonSecrets(): Partial<CodebaseIndexConfig> {
+		const resolved = this._configManager?.getLastResolvedConfig()
+		if (!resolved) return {}
+		const {
+			codeIndexOpenAiKey: _a,
+			codeIndexQdrantApiKey: _b,
+			codebaseIndexOpenAiCompatibleApiKey: _c,
+			codebaseIndexGeminiApiKey: _d,
+			codebaseIndexMistralApiKey: _e,
+			codebaseIndexVercelAiGatewayApiKey: _f,
+			codebaseIndexOpenRouterApiKey: _g,
+			...nonSecret
+		} = resolved
+		return nonSecret
+	}
+
 	public get onProgressUpdate() {
 		return this._stateManager.onProgressUpdate
 	}
@@ -163,10 +209,17 @@ export class CodeIndexManager {
 	public async initialize(contextProxy: ContextProxy): Promise<{ requiresRestart: boolean }> {
 		// 1. ConfigManager Initialization and Configuration Loading
 		if (!this._configManager) {
-			this._configManager = new CodeIndexConfigManager(contextProxy)
+			this._configManager = new CodeIndexConfigManager(
+				contextProxy,
+				this.context,
+				this._folderUri,
+				this.workspacePath,
+			)
+			this._setupDotfileWatchers()
 		}
 		// Load configuration once to get current state and restart requirements
 		const { requiresRestart } = await this._configManager.loadConfiguration()
+		this._surfaceDotfileWarnings()
 
 		// 2. Check if feature is enabled
 		if (!this.isFeatureEnabled) {
@@ -307,6 +360,90 @@ export class CodeIndexManager {
 	public dispose(): void {
 		this.stopIndexing()
 		this._stateManager.dispose()
+		for (const watcher of this._dotfileWatchers) {
+			try {
+				watcher.dispose()
+			} catch {
+				// best-effort
+			}
+		}
+		this._dotfileWatchers = []
+	}
+
+	/**
+	 * Sets up VS Code file-system watchers for both dotfiles — project-local
+	 * ({workspace}/.roo/codebase-index.json) and user-global
+	 * (~/.roo/codebase-index.json). Any change/create/delete event re-runs
+	 * handleSettingsChange so the resolver picks up the new values.
+	 *
+	 * Using `createFileSystemWatcher` with a RelativePattern for the global
+	 * location lets us observe a file outside the workspace.
+	 */
+	private _setupDotfileWatchers(): void {
+		// Clean up any prior watchers first (idempotent — safe to re-call).
+		for (const w of this._dotfileWatchers) {
+			try {
+				w.dispose()
+			} catch {
+				// best-effort
+			}
+		}
+		this._dotfileWatchers = []
+
+		const handleChange = async () => {
+			try {
+				await this.handleSettingsChange()
+			} catch (error) {
+				console.error("[CodeIndexManager] Error handling dotfile change:", error)
+			}
+		}
+
+		// Project-local dotfile.
+		if (this.workspacePath) {
+			const projectPattern = new vscode.RelativePattern(
+				vscode.Uri.file(path.join(this.workspacePath, ".roo")),
+				CODEBASE_INDEX_DOTFILE_FILENAME,
+			)
+			const projectWatcher = vscode.workspace.createFileSystemWatcher(projectPattern)
+			this._dotfileWatchers.push(
+				projectWatcher,
+				projectWatcher.onDidChange(handleChange),
+				projectWatcher.onDidCreate(handleChange),
+				projectWatcher.onDidDelete(handleChange),
+			)
+		}
+
+		// User-global dotfile.
+		try {
+			const globalPattern = new vscode.RelativePattern(
+				vscode.Uri.file(getGlobalRooDirectory()),
+				CODEBASE_INDEX_DOTFILE_FILENAME,
+			)
+			const globalWatcher = vscode.workspace.createFileSystemWatcher(globalPattern)
+			this._dotfileWatchers.push(
+				globalWatcher,
+				globalWatcher.onDidChange(handleChange),
+				globalWatcher.onDidCreate(handleChange),
+				globalWatcher.onDidDelete(handleChange),
+			)
+		} catch (error) {
+			console.error(`[CodeIndexManager] Failed to register watcher for ${getGlobalDotfilePath()}:`, error)
+		}
+	}
+
+	/**
+	 * Drains dotfile warnings from the config manager and shows one VS Code
+	 * toast per warning. Called after every loadConfiguration so users see
+	 * actionable feedback (e.g. "secrets stripped from dotfile"). Defensive
+	 * because some tests replace `_configManager` with a minimal stub.
+	 */
+	private _surfaceDotfileWarnings(): void {
+		const drain = this._configManager?.drainDotfileWarnings
+		if (typeof drain !== "function") return
+		const messages = drain.call(this._configManager)
+		for (const message of messages) {
+			vscode.window.showWarningMessage(message)
+		}
 	}
 
 	/**
@@ -438,6 +575,7 @@ export class CodeIndexManager {
 	public async handleSettingsChange(): Promise<void> {
 		if (this._configManager) {
 			const { requiresRestart } = await this._configManager.loadConfiguration()
+			this._surfaceDotfileWarnings()
 
 			const isFeatureEnabled = this.isFeatureEnabled
 			const isFeatureConfigured = this.isFeatureConfigured

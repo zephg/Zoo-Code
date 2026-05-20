@@ -1,0 +1,89 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://raw.githubusercontent.com/Zoo-Code-Org/Zoo-Code/main/packages/types/schemas/codebase-index.schema.json",
+	"title": "Zoo Code — .roo/codebase-index.json",
+	"description": "Per-project configuration for Zoo Code's codebase-index feature. Safe to commit; must not contain credentials. Place this file at {workspace}/.roo/codebase-index.json (project-local) or ~/.roo/codebase-index.json (user-global).",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "Points at this schema so editors can offer autocomplete."
+		},
+		"codebaseIndexEnabled": {
+			"type": "boolean",
+			"description": "Whether codebase indexing is active for this workspace. Setting this to false here force-disables it team-wide regardless of global settings."
+		},
+		"codebaseIndexQdrantUrl": {
+			"type": "string",
+			"description": "Qdrant server URL, including scheme and port. Example: http://team-qdrant.internal:6333",
+			"format": "uri"
+		},
+		"codebaseIndexEmbedderProvider": {
+			"type": "string",
+			"enum": [
+				"openai",
+				"ollama",
+				"openai-compatible",
+				"gemini",
+				"mistral",
+				"vercel-ai-gateway",
+				"bedrock",
+				"openrouter"
+			],
+			"description": "Which embedding provider to use for this workspace."
+		},
+		"codebaseIndexEmbedderBaseUrl": {
+			"type": "string",
+			"description": "Base URL for the embedder — used by Ollama (e.g. http://ollama:11434)."
+		},
+		"codebaseIndexEmbedderModelId": {
+			"type": "string",
+			"description": "Embedder model ID. Example: text-embedding-3-small (openai), nomic-embed-text (ollama)."
+		},
+		"codebaseIndexEmbedderModelDimension": {
+			"type": "integer",
+			"minimum": 1,
+			"description": "Override embedding vector dimension. Normally inferred from the model."
+		},
+		"codebaseIndexSearchMinScore": {
+			"type": "number",
+			"minimum": 0,
+			"maximum": 1,
+			"description": "Minimum cosine similarity (0–1) for a result to be returned."
+		},
+		"codebaseIndexSearchMaxResults": {
+			"type": "integer",
+			"minimum": 10,
+			"maximum": 200,
+			"description": "Maximum number of results returned per search (10–200)."
+		},
+		"codebaseIndexOpenAiCompatibleBaseUrl": {
+			"type": "string",
+			"description": "Base URL for an OpenAI-compatible embedding endpoint."
+		},
+		"codebaseIndexOpenAiCompatibleModelDimension": {
+			"type": "integer",
+			"minimum": 1,
+			"description": "Vector dimension when using openai-compatible provider."
+		},
+		"codebaseIndexBedrockRegion": {
+			"type": "string",
+			"description": "AWS region for Bedrock embeddings. Example: us-east-1."
+		},
+		"codebaseIndexBedrockProfile": {
+			"type": "string",
+			"description": "AWS named profile for Bedrock (from ~/.aws/credentials)."
+		},
+		"codebaseIndexOpenRouterSpecificProvider": {
+			"type": "string",
+			"description": "Constrain OpenRouter to a specific downstream provider."
+		}
+	},
+	"patternProperties": {
+		"^code(base)?IndexOpen(Ai|Router)|^code(base)?Index(Qdrant|Gemini|Mistral|VercelAiGateway|OpenRouter)ApiKey$": {
+			"not": {},
+			"description": "API keys are never accepted here. Store them in VS Code settings (global or workspace) — not in a committable file."
+		}
+	}
+}

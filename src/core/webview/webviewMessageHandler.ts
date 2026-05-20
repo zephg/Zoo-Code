@@ -2479,22 +2479,27 @@ export const webviewMessageHandler = async (
 			}
 
 			const settings = message.codeIndexSettings
+			const saveScope: "global" | "workspace" = settings.saveScope ?? "global"
+			// Secrets default to global even when non-secrets are workspace-scoped,
+			// so users can pair a per-repo Qdrant URL with a shared API key.
+			const secretsSaveScope: "global" | "workspace" = settings.secretsSaveScope ?? "global"
 
 			try {
-				// Check if embedder provider has changed
+				// Check if embedder provider has changed.
+				// For comparison purposes we still read from globalState — workspace-scoped
+				// changes flow through handleSettingsChange afterwards, which recomputes the
+				// effective provider and fires restart-detection independently.
 				const currentConfig = getGlobalState("codebaseIndexConfig") || {}
 				const embedderProviderChanged =
 					currentConfig.codebaseIndexEmbedderProvider !== settings.codebaseIndexEmbedderProvider
 
-				// Save global state settings atomically
-				const globalStateConfig = {
-					...currentConfig,
+				const nonSecretPayload = {
 					codebaseIndexEnabled: settings.codebaseIndexEnabled,
 					codebaseIndexQdrantUrl: settings.codebaseIndexQdrantUrl,
 					codebaseIndexEmbedderProvider: settings.codebaseIndexEmbedderProvider,
 					codebaseIndexEmbedderBaseUrl: settings.codebaseIndexEmbedderBaseUrl,
 					codebaseIndexEmbedderModelId: settings.codebaseIndexEmbedderModelId,
-					codebaseIndexEmbedderModelDimension: settings.codebaseIndexEmbedderModelDimension, // Generic dimension
+					codebaseIndexEmbedderModelDimension: settings.codebaseIndexEmbedderModelDimension,
 					codebaseIndexOpenAiCompatibleBaseUrl: settings.codebaseIndexOpenAiCompatibleBaseUrl,
 					codebaseIndexBedrockRegion: settings.codebaseIndexBedrockRegion,
 					codebaseIndexBedrockProfile: settings.codebaseIndexBedrockProfile,
@@ -2503,45 +2508,52 @@ export const webviewMessageHandler = async (
 					codebaseIndexOpenRouterSpecificProvider: settings.codebaseIndexOpenRouterSpecificProvider,
 				}
 
-				// Save global state first
-				await updateGlobalState("codebaseIndexConfig", globalStateConfig)
+				const workspaceFolderUri = provider.getCurrentWorkspaceCodeIndexManager()?.folderUri
 
-				// Save secrets directly using context proxy
-				if (settings.codeIndexOpenAiKey !== undefined) {
-					await provider.contextProxy.storeSecret("codeIndexOpenAiKey", settings.codeIndexOpenAiKey)
-				}
-				if (settings.codeIndexQdrantApiKey !== undefined) {
-					await provider.contextProxy.storeSecret("codeIndexQdrantApiKey", settings.codeIndexQdrantApiKey)
-				}
-				if (settings.codebaseIndexOpenAiCompatibleApiKey !== undefined) {
-					await provider.contextProxy.storeSecret(
-						"codebaseIndexOpenAiCompatibleApiKey",
-						settings.codebaseIndexOpenAiCompatibleApiKey,
+				let globalStateConfig = currentConfig
+				if (saveScope === "workspace") {
+					if (!workspaceFolderUri) {
+						throw new Error("Cannot save code-index settings to workspace scope: no workspace folder open")
+					}
+					await provider.context.workspaceState.update(
+						`codebaseIndexConfig:${workspaceFolderUri.toString(true)}`,
+						nonSecretPayload,
 					)
+				} else {
+					globalStateConfig = { ...currentConfig, ...nonSecretPayload }
+					await updateGlobalState("codebaseIndexConfig", globalStateConfig)
 				}
-				if (settings.codebaseIndexGeminiApiKey !== undefined) {
-					await provider.contextProxy.storeSecret(
-						"codebaseIndexGeminiApiKey",
-						settings.codebaseIndexGeminiApiKey,
-					)
-				}
-				if (settings.codebaseIndexMistralApiKey !== undefined) {
-					await provider.contextProxy.storeSecret(
-						"codebaseIndexMistralApiKey",
-						settings.codebaseIndexMistralApiKey,
-					)
-				}
-				if (settings.codebaseIndexVercelAiGatewayApiKey !== undefined) {
-					await provider.contextProxy.storeSecret(
-						"codebaseIndexVercelAiGatewayApiKey",
-						settings.codebaseIndexVercelAiGatewayApiKey,
-					)
-				}
-				if (settings.codebaseIndexOpenRouterApiKey !== undefined) {
-					await provider.contextProxy.storeSecret(
-						"codebaseIndexOpenRouterApiKey",
-						settings.codebaseIndexOpenRouterApiKey,
-					)
+
+				// Save secrets — routing identical to non-secrets but gated on secretsSaveScope.
+				// When scope=workspace, we use raw SecretStorage with <field>:<folderUri> keys
+				// so the ContextProxy cache doesn't shadow the workspace-scoped value.
+				const secretFieldsToSave: Array<{ key: string; value: string | undefined }> = [
+					{ key: "codeIndexOpenAiKey", value: settings.codeIndexOpenAiKey },
+					{ key: "codeIndexQdrantApiKey", value: settings.codeIndexQdrantApiKey },
+					{ key: "codebaseIndexOpenAiCompatibleApiKey", value: settings.codebaseIndexOpenAiCompatibleApiKey },
+					{ key: "codebaseIndexGeminiApiKey", value: settings.codebaseIndexGeminiApiKey },
+					{ key: "codebaseIndexMistralApiKey", value: settings.codebaseIndexMistralApiKey },
+					{ key: "codebaseIndexVercelAiGatewayApiKey", value: settings.codebaseIndexVercelAiGatewayApiKey },
+					{ key: "codebaseIndexOpenRouterApiKey", value: settings.codebaseIndexOpenRouterApiKey },
+				]
+
+				for (const { key, value } of secretFieldsToSave) {
+					if (value === undefined) continue
+					if (secretsSaveScope === "workspace") {
+						if (!workspaceFolderUri) {
+							throw new Error(
+								"Cannot save code-index secrets to workspace scope: no workspace folder open",
+							)
+						}
+						const scopedKey = `${key}:${workspaceFolderUri.toString(true)}`
+						if (value === "") {
+							await provider.context.secrets.delete(scopedKey)
+						} else {
+							await provider.context.secrets.store(scopedKey, value)
+						}
+					} else {
+						await provider.contextProxy.storeSecret(key as never, value)
+					}
 				}
 
 				// Send success response first - settings are saved regardless of validation

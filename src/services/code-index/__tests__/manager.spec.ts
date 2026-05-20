@@ -70,7 +70,9 @@ vi.mock("../../../utils/path", () => {
 // Mock fs/promises for RooIgnoreController
 vi.mock("fs/promises", () => ({
 	default: {
-		readFile: vi.fn().mockRejectedValue(new Error("File not found")), // Simulate no .gitignore/.rooignore
+		// Simulate "no .gitignore / .rooignore / dotfile present" using a real ENOENT shape so
+		// helpers like readFileIfExists treat it as missing and return null instead of rethrowing.
+		readFile: vi.fn().mockRejectedValue(Object.assign(new Error("File not found"), { code: "ENOENT" })),
 	},
 }))
 
@@ -800,6 +802,49 @@ describe("CodeIndexManager - handleSettingsChange regression", () => {
 
 			expect(mockOrchestrator.stopIndexing).toHaveBeenCalled()
 			expect(mockStateManager.setSystemState).toHaveBeenCalledWith("Standby", "Code indexing is disabled")
+		})
+	})
+
+	describe("dotfile watcher wiring", () => {
+		it("registers two file watchers (project + global) and routes change events to handleSettingsChange", async () => {
+			const vscode = await import("vscode")
+			const createFsWatcher = vscode.workspace.createFileSystemWatcher as ReturnType<typeof vi.fn>
+
+			// Reset call history so we only count calls made during this test.
+			// The vscode mock returns a singleton watcher object whose onDid* are vi.fn() instances,
+			// so we also need to clear those across previous tests' registrations.
+			createFsWatcher.mockClear()
+			const sharedWatcherStub = createFsWatcher.getMockImplementation()
+				? (createFsWatcher.getMockImplementation()!() as any)
+				: ({} as any)
+			;(sharedWatcherStub.onDidChange as ReturnType<typeof vi.fn> | undefined)?.mockClear()
+			;(sharedWatcherStub.onDidCreate as ReturnType<typeof vi.fn> | undefined)?.mockClear()
+			;(sharedWatcherStub.onDidDelete as ReturnType<typeof vi.fn> | undefined)?.mockClear()
+
+			const mockContextProxy = {
+				getValue: vi.fn(),
+				setValue: vi.fn(),
+				storeSecret: vi.fn(),
+				getSecret: vi.fn(),
+				refreshSecrets: vi.fn().mockResolvedValue(undefined),
+				getGlobalState: vi.fn().mockReturnValue(undefined),
+			}
+
+			await manager.initialize(mockContextProxy as any)
+
+			// Two watchers should be registered: project-local + user-global
+			expect(createFsWatcher).toHaveBeenCalledTimes(2)
+
+			// The mock returns the same watcher object for both calls, so onDidChange.mock.calls
+			// contains both registrations. Grab any handler and verify it routes to handleSettingsChange.
+			const watcherStub = createFsWatcher.mock.results[0].value
+			const onDidChangeMock = watcherStub.onDidChange as ReturnType<typeof vi.fn>
+			expect(onDidChangeMock).toHaveBeenCalled()
+			const changeHandler = onDidChangeMock.mock.calls[0][0] as () => Promise<void>
+
+			const spy = vi.spyOn(manager, "handleSettingsChange").mockResolvedValue(undefined)
+			await changeHandler()
+			expect(spy).toHaveBeenCalled()
 		})
 	})
 })
