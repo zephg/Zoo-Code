@@ -546,7 +546,8 @@
 			"high": "Tinggi",
 			"xhigh": "Sangat tinggi",
 			"medium": "Sedang",
-			"low": "Rendah"
+			"low": "Rendah",
+			"max": "Max"
 		},
 		"verbosity": {
 			"label": "Verbositas Output",

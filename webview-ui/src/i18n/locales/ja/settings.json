@@ -546,7 +546,8 @@
 			"high": "高",
 			"xhigh": "非常に高い",
 			"medium": "中",
-			"low": "低"
+			"low": "低",
+			"max": "Max"
 		},
 		"verbosity": {
 			"label": "出力の冗長性",

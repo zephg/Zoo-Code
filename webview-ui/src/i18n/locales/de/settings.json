@@ -546,7 +546,8 @@
 			"high": "Hoch",
 			"xhigh": "Sehr hoch",
 			"medium": "Mittel",
-			"low": "Niedrig"
+			"low": "Niedrig",
+			"max": "Max"
 		},
 		"verbosity": {
 			"label": "Ausgabe-Ausführlichkeit",

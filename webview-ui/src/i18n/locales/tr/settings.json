@@ -546,7 +546,8 @@
 			"high": "Yüksek",
 			"xhigh": "Çok yüksek",
 			"medium": "Orta",
-			"low": "Düşük"
+			"low": "Düşük",
+			"max": "Max"
 		},
 		"verbosity": {
 			"label": "Çıktı Ayrıntı Düzeyi",

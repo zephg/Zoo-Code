@@ -546,7 +546,8 @@
 			"high": "Hoog",
 			"xhigh": "Zeer hoog",
 			"medium": "Middel",
-			"low": "Laag"
+			"low": "Laag",
+			"max": "Max"
 		},
 		"verbosity": {
 			"label": "Uitvoerbaarheid",
