@@ -48,7 +48,7 @@ export type GeminiReasoningParams = GenerateContentConfig["thinkingConfig"] & {
 export type GetModelReasoningOptions = {
 	model: ModelInfo
 	reasoningBudget: number | undefined
-	reasoningEffort: ReasoningEffortExtended | "disable" | undefined
+	reasoningEffort?: ReasoningEffortExtended | "disable" | undefined
 	settings: ProviderSettings
 }
 
@@ -206,5 +206,5 @@ export const getGeminiReasoning = ({
 		return undefined
 	}
 
-	return { thinkingLevel: effortToUse, includeThoughts: true }
+	return { thinkingLevel: effortToUse as unknown as GeminiReasoningParams["thinkingLevel"], includeThoughts: true }
 }
