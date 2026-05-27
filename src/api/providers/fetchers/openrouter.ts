@@ -7,6 +7,7 @@ import {
 	OPEN_ROUTER_REASONING_BUDGET_MODELS,
 	OPEN_ROUTER_REQUIRED_REASONING_BUDGET_MODELS,
 	anthropicModels,
+	openAiNativeModels,
 } from "@roo-code/types"
 
 import type { ApiHandlerOptions } from "../../../shared/api"
@@ -227,6 +228,21 @@ export const parseOpenRouterModel = ({
 
 	if (OPEN_ROUTER_REQUIRED_REASONING_BUDGET_MODELS.has(id)) {
 		modelInfo.requiredReasoningBudget = true
+	}
+
+	// Mirror reasoning-effort capability arrays from static OpenAI defs so that
+	// OpenRouter-routed OpenAI models surface the same effort levels (e.g. xhigh)
+	// as the direct openai-native provider, instead of falling back to the legacy
+	// short list. Anthropic-specific overrides below can still disable as needed.
+	if (id.startsWith("openai/")) {
+		const localId = id.slice("openai/".length) as keyof typeof openAiNativeModels
+		const staticDef = openAiNativeModels[localId] as ModelInfo | undefined
+		if (staticDef && Array.isArray(staticDef.supportsReasoningEffort)) {
+			modelInfo.supportsReasoningEffort = staticDef.supportsReasoningEffort
+			if (staticDef.reasoningEffort && !modelInfo.reasoningEffort) {
+				modelInfo.reasoningEffort = staticDef.reasoningEffort
+			}
+		}
 	}
 
 	// For backwards compatibility with the old model definitions we will
