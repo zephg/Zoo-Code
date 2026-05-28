@@ -111,6 +111,30 @@ export const anthropicModels = {
 		supportsTemperature: false,
 		supportsReasoningDisplay: true,
 	},
+	"claude-opus-4-8": {
+		maxTokens: 128_000,
+		// Native 1M-token context window; flat pricing (200k on Microsoft Foundry only).
+		// Source: https://platform.claude.com/docs/en/about-claude/models/overview
+		contextWindow: 1_000_000,
+		supportsImages: true,
+		supportsPromptCache: true,
+		inputPrice: 5.0,
+		outputPrice: 25.0,
+		cacheWritesPrice: 6.25,
+		cacheReadsPrice: 0.5,
+		// Opus 4.8 uses adaptive thinking only; manual `thinking: {type: "enabled", budget_tokens}`
+		// returns a 400 error. Effort controls thinking depth.
+		// Per https://platform.claude.com/docs/en/build-with-claude/effort:
+		//   - Effort defaults to `high` on the API and Claude Code; Anthropic explicitly states
+		//     this is "the best overall balance of quality and user experience" and yields
+		//     similar token usage to Opus 4.7's xhigh default but with better performance.
+		//   - `xhigh` is recommended for difficult tasks and long-running async workflows.
+		supportsReasoningEffort: ["low", "medium", "high", "xhigh", "max"],
+		requiredReasoningEffort: true,
+		reasoningEffort: "high",
+		supportsTemperature: false,
+		supportsReasoningDisplay: true,
+	},
 	"claude-opus-4-5-20251101": {
 		maxTokens: 32_000, // Overridden to 8k if `enableReasoningEffort` is false.
 		contextWindow: 200_000,

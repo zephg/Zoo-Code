@@ -266,6 +266,34 @@ describe("OpenRouter API", () => {
 	})
 
 	describe("parseOpenRouterModel", () => {
+		it.each([["anthropic/claude-opus-4.7"], ["anthropic/claude-opus-4.8"]])(
+			"mirrors static capability for %s on OpenRouter",
+			(id) => {
+				const mockModel = {
+					name: id,
+					description: "Test model",
+					context_length: 1_000_000,
+					max_completion_tokens: 128000,
+					pricing: { prompt: "0.000005", completion: "0.000025", input_cache_read: "0.0000005" },
+				}
+
+				const result = parseOpenRouterModel({
+					id,
+					model: mockModel,
+					inputModality: ["text", "image"],
+					outputModality: ["text"],
+					maxTokens: 128000,
+					supportedParameters: ["reasoning", "tools"],
+				})
+
+				expect(result.maxTokens).toBe(128000)
+				expect(result.supportsReasoningEffort).toEqual(["low", "medium", "high", "xhigh", "max"])
+				expect(result.requiredReasoningEffort).toBe(true)
+				expect(result.supportsReasoningBudget).toBe(false)
+				expect(result.supportsTemperature).toBe(false)
+			},
+		)
+
 		it("sets claude-sonnet-4.6 model to Anthropic max tokens", () => {
 			const mockModel = {
 				name: "Claude Sonnet 4.6",

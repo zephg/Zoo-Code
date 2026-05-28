@@ -279,6 +279,22 @@ export const parseOpenRouterModel = ({
 		modelInfo.maxTokens = anthropicModels["claude-opus-4-6"].maxTokens
 	}
 
+	// Opus 4.7 and 4.8 via OpenRouter: mirror static capability arrays so the UI
+	// surfaces xhigh / max effort levels (boolean true would collapse to the
+	// legacy low/medium/high fallback). Both models use adaptive thinking only
+	// and reject budget_tokens, so disable supportsReasoningBudget.
+	if (id === "anthropic/claude-opus-4.7" || id === "anthropic/claude-opus-4.8") {
+		const staticId = id === "anthropic/claude-opus-4.7" ? "claude-opus-4-7" : "claude-opus-4-8"
+		const staticDef = anthropicModels[staticId]
+		modelInfo.maxTokens = staticDef.maxTokens
+		modelInfo.supportsReasoningEffort = staticDef.supportsReasoningEffort
+		modelInfo.reasoningEffort = staticDef.reasoningEffort
+		modelInfo.requiredReasoningEffort = staticDef.requiredReasoningEffort
+		modelInfo.supportsReasoningBudget = false
+		modelInfo.supportsReasoningDisplay = staticDef.supportsReasoningDisplay
+		modelInfo.supportsTemperature = staticDef.supportsTemperature
+	}
+
 	// Ensure correct reasoning handling for Claude Haiku 4.5 on OpenRouter
 	// Use budget control and disable effort-based reasoning fallback
 	if (id === "anthropic/claude-haiku-4.5") {
