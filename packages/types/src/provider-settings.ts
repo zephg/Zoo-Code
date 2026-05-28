@@ -43,6 +43,7 @@ export const dynamicProviders = [
 	"unbound",
 	"poe",
 	"deepseek",
+	"opencode-go",
 ] as const
 
 export type DynamicProvider = (typeof dynamicProviders)[number]
@@ -402,6 +403,11 @@ const vercelAiGatewaySchema = baseProviderSettingsSchema.extend({
 	vercelAiGatewayModelId: z.string().optional(),
 })
 
+const opencodeGoSchema = baseProviderSettingsSchema.extend({
+	opencodeGoApiKey: z.string().optional(),
+	opencodeGoModelId: z.string().optional(),
+})
+
 const basetenSchema = apiModelIdProviderModelSchema.extend({
 	basetenApiKey: z.string().optional(),
 })
@@ -440,6 +446,7 @@ export const providerSettingsSchemaDiscriminated = z.discriminatedUnion("apiProv
 	fireworksSchema.merge(z.object({ apiProvider: z.literal("fireworks") })),
 	qwenCodeSchema.merge(z.object({ apiProvider: z.literal("qwen-code") })),
 	vercelAiGatewaySchema.merge(z.object({ apiProvider: z.literal("vercel-ai-gateway") })),
+	opencodeGoSchema.merge(z.object({ apiProvider: z.literal("opencode-go") })),
 	defaultSchema,
 ])
 
@@ -474,6 +481,7 @@ export const providerSettingsSchema = z.object({
 	...fireworksSchema.shape,
 	...qwenCodeSchema.shape,
 	...vercelAiGatewaySchema.shape,
+	...opencodeGoSchema.shape,
 	...codebaseIndexProviderSchema.shape,
 })
 
@@ -504,6 +512,7 @@ export const modelIdKeys = [
 	"unboundModelId",
 	"litellmModelId",
 	"vercelAiGatewayModelId",
+	"opencodeGoModelId",
 ] as const satisfies readonly (keyof ProviderSettings)[]
 
 export type ModelIdKey = (typeof modelIdKeys)[number]
@@ -549,6 +558,7 @@ export const modelIdKeysByProvider: Record<TypicalProvider, ModelIdKey> = {
 	zai: "apiModelId",
 	fireworks: "apiModelId",
 	"vercel-ai-gateway": "vercelAiGatewayModelId",
+	"opencode-go": "opencodeGoModelId",
 }
 
 /**
@@ -665,6 +675,7 @@ export const MODELS_BY_PROVIDER: Record<
 	requesty: { id: "requesty", label: "Requesty", models: [] },
 	unbound: { id: "unbound", label: "Unbound", models: [] },
 	"vercel-ai-gateway": { id: "vercel-ai-gateway", label: "Vercel AI Gateway", models: [] },
+	"opencode-go": { id: "opencode-go", label: "Opencode Go", models: [] },
 
 	// Local providers; models discovered from localhost endpoints.
 	lmstudio: { id: "lmstudio", label: "LM Studio", models: [] },
