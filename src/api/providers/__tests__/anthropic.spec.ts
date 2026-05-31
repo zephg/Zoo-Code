@@ -310,6 +310,105 @@ describe("AnthropicHandler", () => {
 			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
 			expect((requestBody as any)?.output_config).toEqual({ effort: "max" })
 		})
+
+		it("should not require the 1M context beta header for Claude Opus 4.8", async () => {
+			const opus48Handler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-opus-4-8",
+				anthropicBeta1MContext: true,
+			})
+
+			const stream = opus48Handler.createMessage(systemPrompt, [
+				{
+					role: "user",
+					content: [{ type: "text" as const, text: "Hello" }],
+				},
+			])
+
+			for await (const _chunk of stream) {
+				// Consume stream
+			}
+
+			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
+			const requestOptions = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[1]
+			expect(requestBody?.temperature).toBeUndefined()
+			expect(requestOptions?.headers?.["anthropic-beta"]).toContain("prompt-caching-2024-07-31")
+			expect(requestOptions?.headers?.["anthropic-beta"]).not.toContain("context-1m-2025-08-07")
+		})
+
+		it("should use adaptive thinking for Claude Opus 4.8 when reasoning is enabled", async () => {
+			const opus48Handler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-opus-4-8",
+				enableReasoningEffort: true,
+			})
+
+			const stream = opus48Handler.createMessage(systemPrompt, [
+				{
+					role: "user",
+					content: [{ type: "text" as const, text: "Hello" }],
+				},
+			])
+
+			for await (const _chunk of stream) {
+				// Consume stream
+			}
+
+			// Opus 4.8 uses adaptive thinking with effort. Default effort is "high"
+			// per Anthropic's recommendation as the best overall balance.
+			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
+			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect((requestBody as any)?.output_config).toEqual({ effort: "high" })
+		})
+
+		it("should always emit adaptive thinking for Claude Opus 4.8 (reasoning is required)", async () => {
+			// Opus 4.8 has requiredReasoningEffort: true — adaptive thinking is always on
+			// regardless of the enableReasoningEffort setting (the API rejects requests
+			// without an adaptive thinking payload on 4.8).
+			const opus48Handler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-opus-4-8",
+				enableReasoningEffort: false,
+			})
+
+			const stream = opus48Handler.createMessage(systemPrompt, [
+				{
+					role: "user",
+					content: [{ type: "text" as const, text: "Hello" }],
+				},
+			])
+
+			for await (const _chunk of stream) {
+				// Consume stream
+			}
+
+			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
+			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+		})
+
+		it("should honor user-chosen effort for Claude Opus 4.8", async () => {
+			const opus48Handler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-opus-4-8",
+				enableReasoningEffort: true,
+				reasoningEffort: "xhigh",
+			})
+
+			const stream = opus48Handler.createMessage(systemPrompt, [
+				{
+					role: "user",
+					content: [{ type: "text" as const, text: "Hello" }],
+				},
+			])
+
+			for await (const _chunk of stream) {
+				// Consume stream
+			}
+
+			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
+			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect((requestBody as any)?.output_config).toEqual({ effort: "xhigh" })
+		})
 	})
 
 	describe("completePrompt", () => {
@@ -434,6 +533,25 @@ describe("AnthropicHandler", () => {
 			// coding recommendation), not budget-based or binary toggle.
 			expect(model.info.supportsReasoningEffort).toEqual(["low", "medium", "high", "xhigh", "max"])
 			expect(model.info.reasoningEffort).toBe("xhigh")
+			expect(model.info.requiredReasoningEffort).toBe(true)
+			expect(model.info.supportsTemperature).toBe(false)
+			expect(model.info.supportsPromptCache).toBe(true)
+			expect(model.reasoningBudget).toBeUndefined()
+		})
+
+		it("should handle Claude Opus 4.8 model correctly", () => {
+			const handler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-opus-4-8",
+			})
+			const model = handler.getModel()
+			expect(model.id).toBe("claude-opus-4-8")
+			expect(model.info.maxTokens).toBe(128000)
+			expect(model.info.contextWindow).toBe(1000000)
+			// Opus 4.8 uses effort-based adaptive thinking (default "high" per Anthropic's
+			// recommendation as the best overall balance), not budget-based or binary toggle.
+			expect(model.info.supportsReasoningEffort).toEqual(["low", "medium", "high", "xhigh", "max"])
+			expect(model.info.reasoningEffort).toBe("high")
 			expect(model.info.requiredReasoningEffort).toBe(true)
 			expect(model.info.supportsTemperature).toBe(false)
 			expect(model.info.supportsPromptCache).toBe(true)

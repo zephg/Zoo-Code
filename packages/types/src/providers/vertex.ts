@@ -384,7 +384,39 @@ export const vertexModels = {
 		cacheWritesPrice: 6.25, // $6.25 per million tokens
 		cacheReadsPrice: 0.5, // $0.50 per million tokens
 		supportsReasoningBudget: true,
+		supportsReasoningBinary: true,
 		supportsTemperature: false,
+		// Tiered pricing for extended context (requires beta flag 'context-1m-2025-08-07')
+		tiers: [
+			{
+				contextWindow: 1_000_000, // 1M tokens with beta flag
+				inputPrice: 10.0, // $10 per million input tokens (>200K context)
+				outputPrice: 37.5, // $37.50 per million output tokens (>200K context)
+				cacheWritesPrice: 12.5, // $12.50 per million tokens (>200K context)
+				cacheReadsPrice: 1.0, // $1.00 per million tokens (>200K context)
+			},
+		],
+	},
+	"claude-opus-4-8": {
+		maxTokens: 8192,
+		contextWindow: 200_000, // Default 200K, extendable to 1M with beta flag 'context-1m-2025-08-07'
+		supportsImages: true,
+		supportsPromptCache: true,
+		inputPrice: 5.0, // $5 per million input tokens (≤200K context)
+		outputPrice: 25.0, // $25 per million output tokens (≤200K context)
+		cacheWritesPrice: 6.25, // $6.25 per million tokens
+		cacheReadsPrice: 0.5, // $0.50 per million tokens
+		// Vertex routes through getAnthropicReasoning (no provider-side adaptive-thinking
+		// guard exists for Vertex, unlike Bedrock). Opus 4.8 rejects budget_tokens, so
+		// the registry shape itself must steer the helper into the effort/adaptive
+		// branch — mirroring the Anthropic 4.8 entry. Anthropic 4.7's Vertex entry
+		// still uses the legacy budget shape; that pre-existing bug is tracked
+		// separately (see commit fd93c5bde follow-up notes).
+		supportsReasoningEffort: ["low", "medium", "high", "xhigh", "max"],
+		requiredReasoningEffort: true,
+		reasoningEffort: "high",
+		supportsTemperature: false,
+		supportsReasoningDisplay: true,
 		// Tiered pricing for extended context (requires beta flag 'context-1m-2025-08-07')
 		tiers: [
 			{
@@ -595,6 +627,7 @@ export const VERTEX_1M_CONTEXT_MODEL_IDS = [
 	"claude-sonnet-4-6",
 	"claude-opus-4-6",
 	"claude-opus-4-7",
+	"claude-opus-4-8",
 ] as const
 
 export const VERTEX_REGIONS = [

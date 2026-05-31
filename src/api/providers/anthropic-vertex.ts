@@ -97,7 +97,7 @@ export class AnthropicVertexHandler extends BaseProvider implements SingleComple
 		 * This ensures we stay under the 4-block limit while maintaining effective caching
 		 * for the most relevant context.
 		 */
-		const params: Anthropic.Messages.MessageCreateParamsStreaming = {
+		const params = {
 			model: id,
 			max_tokens: maxTokens ?? ANTHROPIC_DEFAULT_MAX_TOKENS,
 			temperature,
@@ -110,7 +110,7 @@ export class AnthropicVertexHandler extends BaseProvider implements SingleComple
 			messages: supportsPromptCache ? addCacheBreakpoints(sanitizedMessages) : sanitizedMessages,
 			stream: true,
 			...nativeToolParams,
-		}
+		} as Anthropic.Messages.MessageCreateParamsStreaming
 
 		// and prompt caching
 		const requestOptions = betas?.length ? { headers: { "anthropic-beta": betas.join(",") } } : undefined
@@ -276,7 +276,7 @@ export class AnthropicVertexHandler extends BaseProvider implements SingleComple
 			const thinking = reasoning?.thinking
 			const outputConfig = reasoning?.output_config
 
-			const params: Anthropic.Messages.MessageCreateParamsNonStreaming = {
+			const params = {
 				model: id,
 				max_tokens: maxTokens,
 				temperature,
@@ -291,7 +291,7 @@ export class AnthropicVertexHandler extends BaseProvider implements SingleComple
 					},
 				],
 				stream: false,
-			}
+			} as Anthropic.Messages.MessageCreateParamsNonStreaming
 
 			const response = await this.client.messages.create(params)
 			const content = response.content[0]
