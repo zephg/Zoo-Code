@@ -9,12 +9,13 @@ on:
 jobs:
   publish-stable:
     runs-on: ubuntu-latest
+    environment: marketplace-production
     permissions:
       contents: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
@@ -28,6 +29,13 @@ jobs:
 
           test "$package_name" = "zoo-code"
           test "$publisher" = "ZooCodeOrganization"
+
+      - name: Validate publish ref
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$GITHUB_REF_NAME" != "main" ]; then
+            echo "Manual stable publishes must run from main, not ${GITHUB_REF_NAME}."
+            exit 1
+          fi
 
       - name: Validate release tag
         if: github.event_name == 'push'

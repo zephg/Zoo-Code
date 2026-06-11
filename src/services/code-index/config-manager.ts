@@ -272,6 +272,10 @@ export class CodeIndexConfigManager {
 
 		this.openAiOptions = { openAiNativeApiKey: config.codeIndexOpenAiKey ?? "" }
 
+		// Our resolver (resolveCodeIndexConfig) already normalizes the provider — invalid
+		// or unset values default to "openai" (config-resolver.ts) — and the resolved type
+		// includes "semble", so the direct assignment carries every provider (incl. the new
+		// upstream "semble" option) through without the per-provider if/else chain.
 		this.embedderProvider = config.codebaseIndexEmbedderProvider
 		this.modelId = config.codebaseIndexEmbedderModelId || undefined
 
@@ -387,6 +391,11 @@ export class CodeIndexConfigManager {
 	 * Checks if the service is properly configured based on the embedder type.
 	 */
 	public isConfigured(): boolean {
+		if (this.embedderProvider === "semble") {
+			// Semble requires no API keys or Qdrant — it's always configured
+			return true
+		}
+
 		if (this.embedderProvider === "openai") {
 			const openAiKey = this.openAiOptions?.openAiNativeApiKey
 			const qdrantUrl = this.qdrantUrl

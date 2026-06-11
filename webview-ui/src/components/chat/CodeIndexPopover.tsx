@@ -180,6 +180,12 @@ const createValidationSchema = (provider: EmbedderProvider, t: any) => {
 					.min(1, t("settings:codeIndex.validation.modelSelectionRequired")),
 			})
 
+		case "semble":
+			// Semble requires no API keys, Qdrant URL, or model selection
+			return z.object({
+				codebaseIndexEnabled: z.boolean(),
+			})
+
 		default:
 			return baseSchema
 	}
@@ -191,8 +197,15 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 }) => {
 	const SECRET_PLACEHOLDER = "••••••••••••••••"
 	const { t } = useAppTranslation()
-	const { codebaseIndexConfig, codebaseIndexConfigSources, codebaseIndexModels, cwd, apiConfiguration } =
-		useExtensionState()
+	const {
+		codebaseIndexConfig,
+		codebaseIndexConfigSources,
+		codebaseIndexModels,
+		cwd,
+		apiConfiguration,
+		platform,
+		arch,
+	} = useExtensionState()
 	const [open, setOpen] = useState(false)
 	const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false)
 	const [isSetupSettingsOpen, setIsSetupSettingsOpen] = useState(false)
@@ -228,6 +241,10 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 		},
 		[sourceFor],
 	)
+
+	// Check if semble is supported on the current platform
+	const SEMBLE_SUPPORTED_PLATFORMS = ["linux-x64", "linux-arm64", "darwin-arm64", "win32-x64"]
+	const isSembleSupported = platform && arch ? SEMBLE_SUPPORTED_PLATFORMS.includes(`${platform}-${arch}`) : false
 
 	// Form validation state
 	const [formErrors, setFormErrors] = useState<Record<string, string>>({})
@@ -852,6 +869,11 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												<SelectItem value="openrouter">
 													{t("settings:codeIndex.openRouterProvider")}
 												</SelectItem>
+												{isSembleSupported && (
+													<SelectItem value="semble">
+														{t("settings:codeIndex.sembleProvider")}
+													</SelectItem>
+												)}
 											</SelectContent>
 										</Select>
 									</div>
@@ -1521,63 +1543,69 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 										</>
 									)}
 
-									{/* Qdrant Settings */}
-									<div className="space-y-2">
-										<div className="flex items-center gap-1">
-											<label className="text-sm font-medium">
-												{t("settings:codeIndex.qdrantUrlLabel")}
-											</label>
-											{isPinnedByDotfile("codebaseIndexQdrantUrl") && (
-												<PinnedByDotfileBadge
-													source={sourceFor("codebaseIndexQdrantUrl")}
-													t={t}
+									{/* Qdrant Settings — hidden for semble */}
+									{currentSettings.codebaseIndexEmbedderProvider !== "semble" && (
+										<>
+											<div className="space-y-2">
+												<div className="flex items-center gap-1">
+													<label className="text-sm font-medium">
+														{t("settings:codeIndex.qdrantUrlLabel")}
+													</label>
+													{isPinnedByDotfile("codebaseIndexQdrantUrl") && (
+														<PinnedByDotfileBadge
+															source={sourceFor("codebaseIndexQdrantUrl")}
+															t={t}
+														/>
+													)}
+												</div>
+												<VSCodeTextField
+													value={currentSettings.codebaseIndexQdrantUrl || ""}
+													disabled={isPinnedByDotfile("codebaseIndexQdrantUrl")}
+													onInput={(e: any) =>
+														updateSetting("codebaseIndexQdrantUrl", e.target.value)
+													}
+													onBlur={(e: any) => {
+														// Set default Qdrant URL if field is empty
+														if (!e.target.value.trim()) {
+															currentSettings.codebaseIndexQdrantUrl = DEFAULT_QDRANT_URL
+															updateSetting("codebaseIndexQdrantUrl", DEFAULT_QDRANT_URL)
+														}
+													}}
+													placeholder={t("settings:codeIndex.qdrantUrlPlaceholder")}
+													className={cn("w-full", {
+														"border-red-500": formErrors.codebaseIndexQdrantUrl,
+													})}
 												/>
-											)}
-										</div>
-										<VSCodeTextField
-											value={currentSettings.codebaseIndexQdrantUrl || ""}
-											disabled={isPinnedByDotfile("codebaseIndexQdrantUrl")}
-											onInput={(e: any) =>
-												updateSetting("codebaseIndexQdrantUrl", e.target.value)
-											}
-											onBlur={(e: any) => {
-												// Set default Qdrant URL if field is empty
-												if (!e.target.value.trim()) {
-													currentSettings.codebaseIndexQdrantUrl = DEFAULT_QDRANT_URL
-													updateSetting("codebaseIndexQdrantUrl", DEFAULT_QDRANT_URL)
-												}
-											}}
-											placeholder={t("settings:codeIndex.qdrantUrlPlaceholder")}
-											className={cn("w-full", {
-												"border-red-500": formErrors.codebaseIndexQdrantUrl,
-											})}
-										/>
-										{formErrors.codebaseIndexQdrantUrl && (
-											<p className="text-xs text-vscode-errorForeground mt-1 mb-0">
-												{formErrors.codebaseIndexQdrantUrl}
-											</p>
-										)}
-									</div>
+												{formErrors.codebaseIndexQdrantUrl && (
+													<p className="text-xs text-vscode-errorForeground mt-1 mb-0">
+														{formErrors.codebaseIndexQdrantUrl}
+													</p>
+												)}
+											</div>
 
-									<div className="space-y-2">
-										<label className="text-sm font-medium">
-											{t("settings:codeIndex.qdrantApiKeyLabel")}
-										</label>
-										<VSCodeTextField
-											type="password"
-											value={currentSettings.codeIndexQdrantApiKey || ""}
-											onInput={(e: any) => updateSetting("codeIndexQdrantApiKey", e.target.value)}
-											placeholder={t("settings:codeIndex.qdrantApiKeyPlaceholder")}
-											className={cn("w-full", {
-												"border-red-500": formErrors.codeIndexQdrantApiKey,
-											})}
-										/>
-										{formErrors.codeIndexQdrantApiKey && (
-											<p className="text-xs text-vscode-errorForeground mt-1 mb-0">
-												{formErrors.codeIndexQdrantApiKey}
-											</p>
-										)}
-									</div>
+											<div className="space-y-2">
+												<label className="text-sm font-medium">
+													{t("settings:codeIndex.qdrantApiKeyLabel")}
+												</label>
+												<VSCodeTextField
+													type="password"
+													value={currentSettings.codeIndexQdrantApiKey || ""}
+													onInput={(e: any) =>
+														updateSetting("codeIndexQdrantApiKey", e.target.value)
+													}
+													placeholder={t("settings:codeIndex.qdrantApiKeyPlaceholder")}
+													className={cn("w-full", {
+														"border-red-500": formErrors.codeIndexQdrantApiKey,
+													})}
+												/>
+												{formErrors.codeIndexQdrantApiKey && (
+													<p className="text-xs text-vscode-errorForeground mt-1 mb-0">
+														{formErrors.codeIndexQdrantApiKey}
+													</p>
+												)}
+											</div>
+										</>
+									)}
 								</div>
 							)}
 						</div>
