@@ -30,21 +30,11 @@
 
 Puedes encontrar una guía rápida para pasar de Roo Code a Zoo Code en la [guía de migración Roo→Zoo](https://docs.zoocode.dev/roo-to-zoo-migration). Queremos ayudar a los usuarios durante la transición, y para eso tenemos nuestro [Reddit](https://www.reddit.com/r/ZooCode) y [Discord](https://discord.gg/VxfP4Vx3gX). Si tienes problemas o alguna pregunta, entra y pregúntanos.
 
-## Novedades de la v3.58.0
+## Novedades de la v3.62.0
 
-- **Zoo Gateway** — conéctate a través de un gateway gestionado con soporte de autenticación multi-perfil
-- **Gemini 3.5 Flash** — un modelo de Google rápido y capaz, ahora disponible desde la configuración del proveedor
-- **Semble embedding** — indexa tu código localmente sin clave de API externa ni subida de archivos
-- **Tamaño de fuente del chat configurable** y **sustitución del shell del terminal integrado de VS Code**
-- **Alertas en estilo GitHub** renderizadas en el webview
-- **Tokens de salida máximos configurables** para modelos GLM
-- **WorkspacePathResolver** — gestión fiable de rutas en espacios de trabajo con symlinks
-- Corregida la caída de React causada por un modo de sugerencia de seguimiento malformado
-- Corregida la omisión de la temperatura de OpenAI cuando no hay valor personalizado definido
-- Gestión de fallos por clave durante la importación de configuración
-- Actualizaciones de seguridad: mermaid v11.15.0, axios v1.16.0
-
----
+- **Soporte para GLM-5.2** — el último modelo GLM ya está disponible en la configuración del proveedor
+- **Mejoras de OpenCode-Go** — parámetros de modelo nativos, enrutamiento en formato Anthropic y corrección de context-token para respuestas más fiables
+- **Modo tool-writer** — un nuevo modo especializado para escribir y mantener definiciones de herramientas, ya disponible en el Marketplace
 
 ## ¿Qué puede hacer Zoo Code por TI?
 

@@ -15,54 +15,56 @@ vitest.mock("@roo-code/telemetry", () => ({
 const mockCreate = vitest.fn()
 
 vitest.mock("@anthropic-ai/sdk", () => {
-	const mockAnthropicConstructor = vitest.fn().mockImplementation(() => ({
-		messages: {
-			create: mockCreate.mockImplementation(async (options) => {
-				if (!options.stream) {
+	const mockAnthropicConstructor = vitest.fn().mockImplementation(function () {
+		return {
+			messages: {
+				create: mockCreate.mockImplementation(async (options) => {
+					if (!options.stream) {
+						return {
+							id: "test-completion",
+							content: [{ type: "text", text: "Test response" }],
+							role: "assistant",
+							model: options.model,
+							usage: {
+								input_tokens: 10,
+								output_tokens: 5,
+							},
+						}
+					}
 					return {
-						id: "test-completion",
-						content: [{ type: "text", text: "Test response" }],
-						role: "assistant",
-						model: options.model,
-						usage: {
-							input_tokens: 10,
-							output_tokens: 5,
+						async *[Symbol.asyncIterator]() {
+							yield {
+								type: "message_start",
+								message: {
+									usage: {
+										input_tokens: 100,
+										output_tokens: 50,
+										cache_creation_input_tokens: 20,
+										cache_read_input_tokens: 10,
+									},
+								},
+							}
+							yield {
+								type: "content_block_start",
+								index: 0,
+								content_block: {
+									type: "text",
+									text: "Hello",
+								},
+							}
+							yield {
+								type: "content_block_delta",
+								delta: {
+									type: "text_delta",
+									text: " world",
+								},
+							}
 						},
 					}
-				}
-				return {
-					async *[Symbol.asyncIterator]() {
-						yield {
-							type: "message_start",
-							message: {
-								usage: {
-									input_tokens: 100,
-									output_tokens: 50,
-									cache_creation_input_tokens: 20,
-									cache_read_input_tokens: 10,
-								},
-							},
-						}
-						yield {
-							type: "content_block_start",
-							index: 0,
-							content_block: {
-								type: "text",
-								text: "Hello",
-							},
-						}
-						yield {
-							type: "content_block_delta",
-							delta: {
-								type: "text_delta",
-								text: " world",
-							},
-						}
-					},
-				}
-			}),
-		},
-	}))
+				}),
+			},
+		}
+	})
 
 	return {
 		Anthropic: mockAnthropicConstructor,
@@ -445,6 +447,37 @@ describe("AnthropicHandler", () => {
 			expect(text).toContain("declined")
 			expect(text).toContain("cyber")
 		})
+
+		it("should use adaptive thinking for Claude Fable 5 when reasoning is enabled", async () => {
+			const fableHandler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-fable-5",
+				enableReasoningEffort: true,
+				modelMaxTokens: 32768,
+			})
+
+			const stream = fableHandler.createMessage(systemPrompt, [
+				{
+					role: "user",
+					content: [{ type: "text" as const, text: "Hello" }],
+				},
+			])
+
+			for await (const _chunk of stream) {
+				// Consume stream
+			}
+
+			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
+			const requestOptions = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[1]
+			// Fable 5 uses adaptive thinking with effort (default "high"), not the legacy
+			// budget/binary shape. Effort-shape models ignore modelMaxTokens, so max_tokens
+			// stays at the model's own ceiling (128k) rather than the requested 32768.
+			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect((requestBody as any)?.output_config).toEqual({ effort: "high" })
+			expect(requestBody?.temperature).toBeUndefined()
+			expect(requestBody?.max_tokens).toBe(128000)
+			expect(requestOptions?.headers?.["anthropic-beta"]).toContain("prompt-caching-2024-07-31")
+		})
 	})
 
 	describe("completePrompt", () => {
@@ -592,6 +625,27 @@ describe("AnthropicHandler", () => {
 			expect(model.info.supportsTemperature).toBe(false)
 			expect(model.info.supportsPromptCache).toBe(true)
 			expect(model.reasoningBudget).toBeUndefined()
+		})
+
+		it("should handle Claude Fable 5 model correctly", () => {
+			const handler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-fable-5",
+			})
+			const model = handler.getModel()
+			expect(model.id).toBe("claude-fable-5")
+			expect(model.info.maxTokens).toBe(128000)
+			expect(model.info.contextWindow).toBe(1000000)
+			// Local fork uses the effort/adaptive shape for Fable, not upstream's budget/binary.
+			expect(model.info.supportsReasoningEffort).toEqual(["low", "medium", "high", "xhigh", "max"])
+			expect(model.info.requiredReasoningEffort).toBe(true)
+			expect(model.info.supportsReasoningBudget).toBeUndefined()
+			expect(model.info.supportsReasoningBinary).toBeUndefined()
+			expect(model.info.supportsPromptCache).toBe(true)
+			expect(model.info.supportsTemperature).toBe(false)
+			expect(model.reasoningBudget).toBeUndefined()
+			expect(model.reasoningEffort).toBe("high")
+			expect(model.maxTokens).toBe(128000)
 		})
 
 		it("should enable 1M context for Claude 4.5 Sonnet when beta flag is set", () => {

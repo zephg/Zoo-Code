@@ -2,6 +2,7 @@
 
 import { Anthropic } from "@anthropic-ai/sdk"
 import { AnthropicVertex } from "@anthropic-ai/vertex-sdk"
+import { GoogleAuth } from "google-auth-library"
 
 import { VERTEX_1M_CONTEXT_MODEL_IDS } from "@roo-code/types"
 
@@ -9,51 +10,70 @@ import { ApiStreamChunk } from "../../transform/stream"
 
 import { AnthropicVertexHandler } from "../anthropic-vertex"
 
+vitest.mock("../utils/timeout-config", () => ({
+	getApiRequestTimeout: vitest.fn().mockReturnValue(300_000),
+}))
+
+const MOCK_TIMEOUT_MS = 300_000
+
+vitest.mock("google-auth-library", () => ({
+	GoogleAuth: vitest.fn().mockImplementation(function (opts) {
+		return { __googleAuthOptions: opts }
+	}),
+}))
+
 vitest.mock("@anthropic-ai/vertex-sdk", () => ({
-	AnthropicVertex: vitest.fn().mockImplementation(() => ({
-		messages: {
-			create: vitest.fn().mockImplementation(async (options) => {
-				if (!options.stream) {
+	AnthropicVertex: vitest.fn().mockImplementation(function () {
+		return {
+			messages: {
+				create: vitest.fn().mockImplementation(async (options) => {
+					if (!options.stream) {
+						return {
+							id: "test-completion",
+							content: [{ type: "text", text: "Test response" }],
+							role: "assistant",
+							model: options.model,
+							usage: {
+								input_tokens: 10,
+								output_tokens: 5,
+							},
+						}
+					}
 					return {
-						id: "test-completion",
-						content: [{ type: "text", text: "Test response" }],
-						role: "assistant",
-						model: options.model,
-						usage: {
-							input_tokens: 10,
-							output_tokens: 5,
+						async *[Symbol.asyncIterator]() {
+							yield {
+								type: "message_start",
+								message: {
+									usage: {
+										input_tokens: 10,
+										output_tokens: 5,
+									},
+								},
+							}
+							yield {
+								type: "content_block_start",
+								content_block: {
+									type: "text",
+									text: "Test response",
+								},
+							}
 						},
 					}
-				}
-				return {
-					async *[Symbol.asyncIterator]() {
-						yield {
-							type: "message_start",
-							message: {
-								usage: {
-									input_tokens: 10,
-									output_tokens: 5,
-								},
-							},
-						}
-						yield {
-							type: "content_block_start",
-							content_block: {
-								type: "text",
-								text: "Test response",
-							},
-						}
-					},
-				}
-			}),
-		},
-	})),
+				}),
+			},
+		}
+	}),
 }))
 
 describe("VertexHandler", () => {
 	let handler: AnthropicVertexHandler
 
 	describe("constructor", () => {
+		beforeEach(() => {
+			;(AnthropicVertex as any).mockClear()
+			;(GoogleAuth as any).mockClear()
+		})
+
 		it("should initialize with provided config for Claude", () => {
 			handler = new AnthropicVertexHandler({
 				apiModelId: "claude-3-5-sonnet-v2@20241022",
@@ -64,7 +84,58 @@ describe("VertexHandler", () => {
 			expect(AnthropicVertex).toHaveBeenCalledWith({
 				projectId: "test-project",
 				region: "us-central1",
+				timeout: MOCK_TIMEOUT_MS,
 			})
+		})
+
+		it("should pass timeout when initializing with vertexJsonCredentials", () => {
+			const credentials = {
+				type: "service_account",
+				client_email: "test@test-project.iam.gserviceaccount.com",
+				private_key: "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----\n",
+			}
+
+			handler = new AnthropicVertexHandler({
+				apiModelId: "claude-3-5-sonnet-v2@20241022",
+				vertexProjectId: "test-project",
+				vertexRegion: "us-central1",
+				vertexJsonCredentials: JSON.stringify(credentials),
+			})
+
+			expect(GoogleAuth).toHaveBeenCalledWith({
+				scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+				credentials,
+			})
+			expect(AnthropicVertex).toHaveBeenCalledWith(
+				expect.objectContaining({
+					projectId: "test-project",
+					region: "us-central1",
+					googleAuth: expect.any(Object),
+					timeout: MOCK_TIMEOUT_MS,
+				}),
+			)
+		})
+
+		it("should pass timeout when initializing with vertexKeyFile", () => {
+			handler = new AnthropicVertexHandler({
+				apiModelId: "claude-3-5-sonnet-v2@20241022",
+				vertexProjectId: "test-project",
+				vertexRegion: "us-central1",
+				vertexKeyFile: "/tmp/sa-key.json",
+			})
+
+			expect(GoogleAuth).toHaveBeenCalledWith({
+				scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+				keyFile: "/tmp/sa-key.json",
+			})
+			expect(AnthropicVertex).toHaveBeenCalledWith(
+				expect.objectContaining({
+					projectId: "test-project",
+					region: "us-central1",
+					googleAuth: expect.any(Object),
+					timeout: MOCK_TIMEOUT_MS,
+				}),
+			)
 		})
 	})
 
@@ -945,6 +1016,27 @@ describe("VertexHandler", () => {
 			expect(model.betas).toContain("context-1m-2025-08-07")
 		})
 
+		it("should return Claude Fable 5 model info", () => {
+			const handler = new AnthropicVertexHandler({
+				apiModelId: "claude-fable-5",
+				vertexProjectId: "test-project",
+				vertexRegion: "us-central1",
+			})
+
+			const model = handler.getModel()
+			expect(model.id).toBe("claude-fable-5")
+			expect(model.info.maxTokens).toBe(8192)
+			expect(model.info.contextWindow).toBe(1_000_000)
+			// Local fork uses the effort/adaptive shape for Fable on Vertex (the registry shape
+			// drives the payload — Vertex has no provider-side guard), not upstream's budget/binary.
+			expect(model.info.supportsReasoningEffort).toEqual(["low", "medium", "high", "xhigh", "max"])
+			expect(model.info.requiredReasoningEffort).toBe(true)
+			expect(model.info.supportsReasoningBudget).toBeUndefined()
+			expect(model.info.supportsReasoningBinary).toBeUndefined()
+			expect(model.info.supportsPromptCache).toBe(true)
+			expect(model.info.supportsTemperature).toBe(false)
+		})
+
 		it("should not enable 1M context when flag is disabled", () => {
 			const handler = new AnthropicVertexHandler({
 				apiModelId: VERTEX_1M_CONTEXT_MODEL_IDS[0],
@@ -1180,6 +1272,35 @@ describe("VertexHandler", () => {
 			await opus48Handler
 				.createMessage("You are a helpful assistant", [{ role: "user", content: "Hello" }])
 				.next()
+
+			expect(mockCreate).toHaveBeenCalledWith(
+				expect.objectContaining({
+					thinking: { type: "adaptive" },
+				}),
+				undefined,
+			)
+
+			const request = mockCreate.mock.calls[0][0]
+			expect(request.thinking).not.toHaveProperty("budget_tokens")
+			expect(request.temperature).toBeUndefined()
+		})
+
+		it("should use adaptive thinking for Claude Fable 5", async () => {
+			const fableHandler = new AnthropicVertexHandler({
+				apiModelId: "claude-fable-5",
+				vertexProjectId: "test-project",
+				vertexRegion: "us-central1",
+				enableReasoningEffort: true,
+			})
+
+			const mockCreate = vitest.fn().mockImplementation(async () => ({
+				async *[Symbol.asyncIterator]() {
+					yield { type: "message_start", message: { usage: { input_tokens: 10, output_tokens: 5 } } }
+				},
+			}))
+			;(fableHandler["client"].messages as any).create = mockCreate
+
+			await fableHandler.createMessage("You are a helpful assistant", [{ role: "user", content: "Hello" }]).next()
 
 			expect(mockCreate).toHaveBeenCalledWith(
 				expect.objectContaining({

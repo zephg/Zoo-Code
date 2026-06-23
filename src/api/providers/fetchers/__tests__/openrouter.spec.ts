@@ -318,6 +318,36 @@ describe("OpenRouter API", () => {
 			expect(result.contextWindow).toBe(200000)
 		})
 
+		it("sets claude-fable-5 model to Anthropic max tokens and omits temperature", () => {
+			const mockModel = {
+				name: "Claude Fable 5",
+				description: "Test model",
+				context_length: 1000000,
+				max_completion_tokens: 128000,
+				pricing: {
+					prompt: "0.00001",
+					completion: "0.00005",
+				},
+			}
+
+			const result = parseOpenRouterModel({
+				id: "anthropic/claude-fable-5",
+				model: mockModel,
+				inputModality: ["text", "image"],
+				outputModality: ["text"],
+				maxTokens: 128000,
+				supportedParameters: ["reasoning", "include_reasoning"],
+			})
+
+			expect(result.maxTokens).toBe(128000)
+			expect(result.contextWindow).toBe(1000000)
+			expect(result.supportsTemperature).toBe(false)
+			// Local fork mirrors the static effort shape for Fable on OpenRouter (not budget/binary).
+			expect(result.supportsReasoningEffort).toEqual(["low", "medium", "high", "xhigh", "max"])
+			expect(result.requiredReasoningEffort).toBe(true)
+			expect(result.supportsReasoningBudget).toBe(false)
+		})
+
 		it("sets horizon-alpha model to 32k max tokens", () => {
 			const mockModel = {
 				name: "Horizon Alpha",

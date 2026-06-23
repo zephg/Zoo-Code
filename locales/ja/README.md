@@ -30,21 +30,11 @@
 
 Roo Code から Zoo Code へ移行するためのクイックガイドは、[Roo→Zoo 移行ガイド](https://docs.zoocode.dev/roo-to-zoo-migration) で確認できます。移行中のユーザーをできるだけ支援したいと考えていて、そのために [Reddit](https://www.reddit.com/r/ZooCode) と [Discord](https://discord.gg/VxfP4Vx3gX) を用意しています。困ったことや質問があれば、気軽に参加して聞いてください。
 
-## v3.58.0 の新機能
+## v3.62.0 の新機能
 
-- **Zoo Gateway** — マルチプロファイル認証に対応したマネージドゲートウェイ経由で接続
-- **Gemini 3.5 Flash** — 高速で優れた Google モデルがプロバイダー設定から直接利用可能に
-- **Semble 埋め込み** — 外部 API キーやアップロード不要でコードベースをローカルにインデックス化
-- **チャットのフォントサイズ設定**と **VS Code 統合ターミナルのシェル上書き**
-- webview で **GitHub スタイルのアラート**をレンダリング
-- GLM モデル向けの**最大出力トークン設定**
-- **WorkspacePathResolver** — シンボリックリンクを含むワークスペースでの安定したパス処理
-- 不正な形式のフォローアップ提案モードによる React クラッシュを修正
-- カスタム値が未設定の場合に OpenAI の temperature が省略される問題を修正
-- 設定インポート時のキー別失敗を処理
-- セキュリティ更新: mermaid v11.15.0、axios v1.16.0
-
----
+- **GLM-5.2 サポート** — 最新の GLM モデルがプロバイダー設定で利用可能になりました
+- **OpenCode-Go の改善** — ネイティブモデルパラメータ、Anthropic フォーマットルーティング、より信頼性の高い応答のための context-token 修正
+- **Tool-writer モード** — ツール定義の作成と保守のための新しい専門モードが Marketplace で利用可能になりました
 
 ## Zoo Codeがあなたのためにできること
 

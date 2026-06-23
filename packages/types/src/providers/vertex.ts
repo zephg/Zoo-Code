@@ -441,6 +441,27 @@ export const vertexModels = {
 			},
 		],
 	},
+	"claude-fable-5": {
+		maxTokens: 8192,
+		contextWindow: 1_000_000,
+		supportsImages: true,
+		supportsPromptCache: true,
+		inputPrice: 10.0,
+		outputPrice: 50.0,
+		cacheWritesPrice: 12.5,
+		cacheReadsPrice: 1.0,
+		// Vertex routes through getAnthropicReasoning (no provider-side adaptive-thinking
+		// guard exists for Vertex, unlike Bedrock). Fable 5 rejects budget_tokens, so the
+		// registry shape itself must steer the helper into the effort/adaptive branch —
+		// mirroring the Anthropic Fable entry and the Vertex Opus 4.8 entry above.
+		supportsReasoningEffort: ["low", "medium", "high", "xhigh", "max"],
+		requiredReasoningEffort: true,
+		reasoningEffort: "high",
+		supportsTemperature: false,
+		supportsReasoningDisplay: true,
+		description:
+			"Claude Fable 5 is Anthropic's most capable widely released model for the most demanding reasoning and long-horizon agentic work.",
+	},
 	"claude-opus-4-5@20251101": {
 		maxTokens: 8192,
 		contextWindow: 200_000,

@@ -1,6 +1,6 @@
 import axios from "axios"
 
-import type { ModelInfo } from "@roo-code/types"
+import { anthropicModels, type ModelInfo } from "@roo-code/types"
 
 import { parseApiPrice } from "../../../shared/cost"
 import { toRequestyServiceUrl } from "../../../shared/utils/requesty"
@@ -43,6 +43,20 @@ export async function getRequestyModels(baseUrl?: string, apiKey?: string): Prom
 				description: rawModel.description,
 				cacheWritesPrice: parseApiPrice(rawModel.caching_price),
 				cacheReadsPrice: parseApiPrice(rawModel.cached_price),
+			}
+
+			if (rawModel.id === "anthropic/claude-fable-5") {
+				// Fable 5 is adaptive-only and rejects budget_tokens; mirror the static effort
+				// shape like the Anthropic / Vertex / OpenRouter paths. The generic claude rule
+				// above sets supportsReasoningBudget=true, so it must be explicitly cleared or
+				// getAnthropicReasoning stays on the legacy budget branch.
+				const staticDef = anthropicModels["claude-fable-5"]
+				modelInfo.supportsReasoningEffort = staticDef.supportsReasoningEffort
+				modelInfo.reasoningEffort = staticDef.reasoningEffort
+				modelInfo.requiredReasoningEffort = staticDef.requiredReasoningEffort
+				modelInfo.supportsReasoningDisplay = staticDef.supportsReasoningDisplay
+				modelInfo.supportsReasoningBudget = false
+				modelInfo.supportsTemperature = false
 			}
 
 			models[rawModel.id] = modelInfo

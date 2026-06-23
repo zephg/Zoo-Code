@@ -1,5 +1,53 @@
 # Zoo Code Changelog
 
+## [3.62.0]
+
+### Minor Changes
+
+- Add GLM-5.2 support — the latest GLM model is now available in your provider settings (#597 by @percy4, PR #608 by @MobCode100)
+- Add OpenCode-Go native model parameters, Anthropic-format routing, and context-token fix for more reliable responses (#646 by @ykoneee, PR #652 by @navedmerchant)
+- Add tool-writer mode to the Marketplace — a new specialized mode for writing and maintaining tool definitions (#603 by @RayCarro, PR #604 by @RayCarro)
+- Add LiteLLM support for forwarding taskId as X-Zoo-Session-ID request header for better request tracing (#590 by @awschmeder, PR #591 by @awschmeder)
+- Fix: Apply apiRequestTimeout consistently across all providers (#565 by @daewoongoh, PR #567 by @daewoongoh)
+- Fix: Restore diff view scroll position and fix tab handling on save/deny (#586 by @awschmeder, PR #589 by @awschmeder)
+- Fix: Deliver terminal completion signal when end event wins the race against setActiveStream (#489 by @drzraf, #622 by @onlineapps-cloud, PR #645 by @edelauna)
+- Fix: Fetch OpenCode-Go models unconditionally — the /models endpoint is public (PR #437 by @proyectoauraorg)
+- Refactor: Extract RateLimitClock from Task static state for cleaner rate-limit handling (#361 by @edelauna, PR #628 by @edelauna)
+- Refactor: Use extractReasoningFromDelta helper for reasoning extraction across providers (PR #588 by @daewoongoh)
+- Fix: Automate PR review-state and stale labels in GitHub Actions (PR #636 by @edelauna)
+- Re-enable the prefer-const ESLint rule (PR #250 by @0xMink)
+- Add stale PR workflows and auto-closure policy (PR #631 by @edelauna)
+- Update dependency vitest to v4 [security] (PR #443 by @app/renovate)
+- Update dependency shell-quote to v1.8.4 [security] (PR #554 by @app/renovate)
+- Update dependency esbuild to v0.28.1 [security] (PR #595 by @app/renovate)
+- Update dependency vite to v8.0.16 [security] (PR #642 by @app/renovate)
+- Update GitHub Actions (PR #521 by @app/renovate)
+
+## [3.60.0]
+
+### Minor Changes
+
+- Add Claude Fable 5 support across Anthropic, Bedrock, and Vertex providers (PR #555 by @taltas)
+- Add OpenAI GPT-5.5 support (PR #537 by @scream4ik)
+- Add per-mode MCP server restrictions — configure an allowlist to restrict which MCP servers are active per mode (PR #453 by @simurg79)
+- Add workspace `rootResolution` setting for controlling path resolution in multi-root workspaces (PR #538 by @simurg79)
+- Add LiteLLM support for `reasoning_content` and `reasoning` fields in streaming responses (PR #449 by @daewoongoh)
+- Add Show Ripgrep Diagnostic command for easier ripgrep troubleshooting (PR #281 by @0xMink)
+- Redesign terminal profile settings UX — unified dropdown, consistent layout, and improved styling (#119 by @chenyuanrun, #321 by @F915, PR #533 by @F915)
+- Fix chat window running out of memory when transcript grows large (PR #153 by @app/roomote)
+- Fix relative symlinks in rules files not resolving correctly using realpath of parent directory (PR #442 by @p12tic)
+- Fix command approval buttons not clearing when auto-executed (PR #480 by @awschmeder)
+- Fix multi-line quoted command parsing, auto-approval behavior, and malformed-command error surfacing (PR #483 by @awschmeder)
+- Fix `list-files` tool to validate directory exists before spawning ripgrep (#557 by @edelauna, PR #558 by @edelauna)
+- Fix child tasks returning to parent when parent status is active in AttemptCompletionTool (PR #510 by @edelauna)
+- Fix surface in-stream errors from Zoo and Vercel AI gateways (PR #569 by @JamesRobert20)
+- Gate marketplace publish behind PR approval check (PR #516 by @edelauna)
+- Stabilize flaky e2e provider suite ordering and zai requestCapture race (#512 by @edelauna, #514 by @edelauna, PR #45 by @app/roomote)
+- Fix flaky e2e subtasks fixture collision and task identity prompt (#561, PR #563 by @simurg79)
+- Add contributing guidelines: PR expectations and AI-assisted contribution policy (PR #562 by @edelauna)
+- Configure knip and remove dead code (PR #225 by @app/roomote)
+- Pin dependencies (PR #423 by @app/renovate)
+
 ## [3.58.1]
 
 ### Patch Changes

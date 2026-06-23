@@ -221,6 +221,7 @@
 		"abort": "Interromper",
 		"pid": "PID: {{pid}}",
 		"exitStatus": "Saiu com o status {{exitCode}}",
+		"malformedCommand": "Comando malformado: erro de sintaxe do shell",
 		"manageCommands": "Comandos aprovados automaticamente",
 		"addToAllowed": "Adicionar à lista de permitidos",
 		"removeFromAllowed": "Remover da lista de permitidos",
@@ -330,16 +331,11 @@
 	"announcement": {
 		"title": "Zoo Code {{version}} lançado",
 		"support": "Apoie o Zoo Code nos dando uma estrela no <githubLink>GitHub</githubLink>.",
-		"handoff": {
-			"heading": "O Roo Code está de volta, agora como um plugin mantido pela comunidade chamado Zoo Code!!",
-			"description": "Se você não acompanhou, a equipe do Roo Code anunciou recentemente que vai encerrar o desenvolvimento do Roo Code e arquivar o trabalho que fez. Mas não se preocupe: a comunidade assumiu para continuar o legado do Roo Code com um novo nome e um novo lar! Não somos mais apenas um único \"Roo\" — somos uma comunidade, um \"Zoo\", por assim dizer. O Zoo Code é um plugin mantido pela comunidade que continua de onde o Roo Code parou, e estamos comprometidos em manter vivo o espírito do Roo enquanto também trazemos novos recursos e melhorias. Queremos deixar um enorme agradecimento a toda a equipe do Roo Code pelo trabalho incrível e por criar uma ferramenta tão fantástica para desenvolvedores. Estamos animados para continuar construindo sobre essa base e ver até onde a comunidade levará o Zoo Code no futuro!",
-			"readMore": "Veja a nova página inicial do Zoo Code e leia o anúncio completo"
-		},
 		"release": {
 			"heading": "Novidades:",
-			"highlight1": "Conecte-se pelo Zoo Gateway — roteie suas requisições por um gateway gerenciado com suporte a autenticação multi-perfil.",
-			"highlight2": "Use o Gemini 3.5 Flash — um modelo Google rápido e capaz, agora disponível diretamente nas configurações do provedor.",
-			"highlight3": "Indexe sua base de código localmente com o Semble — embeddings on-the-fly sem chave de API externa nem upload, mantendo seu código na sua máquina."
+			"highlight1": "Suporte a GLM-5.2 — o modelo GLM mais recente já está disponível nas configurações do provedor.",
+			"highlight2": "Melhorias no OpenCode-Go — parâmetros de modelo nativos, roteamento em formato Anthropic e correção de context-token para respostas mais confiáveis.",
+			"highlight3": "Modo tool-writer — um novo modo especializado para escrever e manter definições de ferramentas, agora disponível no Marketplace."
 		},
 		"cloudAgents": {
 			"heading": "Novidades na Nuvem:",

@@ -104,6 +104,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 				session_id: this.sessionId,
 				"User-Agent": userAgent,
 			},
+			timeout: this.timeoutMs,
 		})
 	}
 
@@ -674,8 +675,8 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		const decoder = new TextDecoder()
 		let buffer = ""
 		let hasContent = false
-		let totalInputTokens = 0
-		let totalOutputTokens = 0
+		const totalInputTokens = 0
+		const totalOutputTokens = 0
 
 		try {
 			while (true) {
@@ -1435,7 +1436,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 	override getModel() {
 		const modelId = this.options.apiModelId
 
-		let id =
+		const id =
 			modelId && modelId in openAiNativeModels ? (modelId as OpenAiNativeModelId) : openAiNativeDefaultModelId
 
 		const info: ModelInfo = openAiNativeModels[id]

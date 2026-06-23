@@ -279,12 +279,17 @@ export const parseOpenRouterModel = ({
 		modelInfo.maxTokens = anthropicModels["claude-opus-4-6"].maxTokens
 	}
 
-	// Opus 4.7 and 4.8 via OpenRouter: mirror static capability arrays so the UI
-	// surfaces xhigh / max effort levels (boolean true would collapse to the
-	// legacy low/medium/high fallback). Both models use adaptive thinking only
-	// and reject budget_tokens, so disable supportsReasoningBudget.
-	if (id === "anthropic/claude-opus-4.7" || id === "anthropic/claude-opus-4.8") {
-		const staticId = id === "anthropic/claude-opus-4.7" ? "claude-opus-4-7" : "claude-opus-4-8"
+	// Opus 4.7/4.8 and Fable 5 via OpenRouter: mirror the static capability arrays so the
+	// UI surfaces xhigh / max effort levels (boolean true would collapse to the legacy
+	// low/medium/high fallback). These models use adaptive thinking only and reject
+	// budget_tokens, so disable supportsReasoningBudget.
+	if (id === "anthropic/claude-opus-4.7" || id === "anthropic/claude-opus-4.8" || id === "anthropic/claude-fable-5") {
+		const staticId =
+			id === "anthropic/claude-opus-4.7"
+				? "claude-opus-4-7"
+				: id === "anthropic/claude-opus-4.8"
+					? "claude-opus-4-8"
+					: "claude-fable-5"
 		const staticDef = anthropicModels[staticId]
 		modelInfo.maxTokens = staticDef.maxTokens
 		modelInfo.supportsReasoningEffort = staticDef.supportsReasoningEffort
