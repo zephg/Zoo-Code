@@ -85,6 +85,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 		}
 
 		switch (modelId) {
+			case "claude-fable-5":
 			case "claude-sonnet-4-6":
 			case "claude-sonnet-4-5":
 			case "claude-sonnet-4-20250514":
@@ -155,6 +156,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 
 							// Then check for models that support prompt caching
 							switch (modelId) {
+								case "claude-fable-5":
 								case "claude-sonnet-4-6":
 								case "claude-sonnet-4-5":
 								case "claude-sonnet-4-20250514":
@@ -252,7 +254,35 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 
 					break
 				}
-				case "message_delta":
+				case "message_delta": {
+					// Fable's safety classifiers can decline a request as a *successful* HTTP 200
+					// with stop_reason "refusal" (pre-output: empty content; mid-stream: partial
+					// content already streamed). Without handling it the turn ends silently/blank.
+					// SDK 0.37.0 doesn't type "refusal" or stop_details, so read defensively.
+					const refusal = chunk.delta as unknown as {
+						stop_reason?: string | null
+						stop_details?: { category?: string | null } | null
+					}
+					if (refusal.stop_reason === "refusal") {
+						const category = refusal.stop_details?.category
+						TelemetryService.instance.captureException(
+							new ApiProviderError(
+								`Request declined by safety classifier${category ? ` (${category})` : ""}`,
+								this.providerName,
+								modelId,
+								"createMessage",
+							),
+						)
+						yield {
+							type: "text",
+							text:
+								`\n\n[Claude declined to complete this request${category ? ` — safety category: ${category}` : ""}. ` +
+								`This is a content-policy decision from Anthropic's classifiers, not a transport error; ` +
+								`re-sending the same prompt will be refused again. Rephrase the request, or switch to ` +
+								`another model (e.g. Claude Opus 4.8) for this task.]`,
+						}
+					}
+
 					// Tells us stop_reason, stop_sequence, and output tokens
 					// along the way and at the end of the message.
 					yield {
@@ -262,6 +292,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 					}
 
 					break
+				}
 				case "message_stop":
 					// No usage data, just an indicator that the message is done.
 					break

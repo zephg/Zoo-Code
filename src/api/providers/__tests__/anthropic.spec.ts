@@ -409,6 +409,42 @@ describe("AnthropicHandler", () => {
 			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
 			expect((requestBody as any)?.output_config).toEqual({ effort: "xhigh" })
 		})
+
+		it("should surface a Fable safety refusal as a clear, category-aware text chunk", async () => {
+			// A refusal is a successful 200 with stop_reason "refusal" — not a thrown error.
+			mockCreate.mockImplementationOnce(async () => ({
+				async *[Symbol.asyncIterator]() {
+					yield {
+						type: "message_start",
+						message: { usage: { input_tokens: 100, output_tokens: 0 } },
+					}
+					yield {
+						type: "message_delta",
+						delta: { stop_reason: "refusal", stop_details: { category: "cyber" } },
+						usage: { output_tokens: 0 },
+					}
+				},
+			}))
+
+			const fableHandler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-fable-5",
+			})
+
+			const stream = fableHandler.createMessage(systemPrompt, [
+				{ role: "user", content: [{ type: "text" as const, text: "Hello" }] },
+			])
+
+			let text = ""
+			for await (const chunk of stream) {
+				if (chunk.type === "text") {
+					text += chunk.text
+				}
+			}
+
+			expect(text).toContain("declined")
+			expect(text).toContain("cyber")
+		})
 	})
 
 	describe("completePrompt", () => {

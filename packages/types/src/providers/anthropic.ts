@@ -7,6 +7,31 @@ export type AnthropicModelId = keyof typeof anthropicModels
 export const anthropicDefaultModelId: AnthropicModelId = "claude-sonnet-4-5"
 
 export const anthropicModels = {
+	"claude-fable-5": {
+		maxTokens: 128_000, // Requires streaming for large outputs.
+		// Native 1M-token context window (the maximum is also the default); flat pricing.
+		// Source: https://platform.claude.com/docs/en/about-claude/models/overview
+		contextWindow: 1_000_000,
+		supportsImages: true, // High-resolution vision.
+		supportsPromptCache: true,
+		// Fable-tier pricing is 2x Opus-tier on both input and output.
+		inputPrice: 10.0, // $10 per million input tokens
+		outputPrice: 50.0, // $50 per million output tokens
+		cacheWritesPrice: 12.5, // $12.50 per million tokens (1.25x input)
+		cacheReadsPrice: 1.0, // $1.00 per million tokens (0.1x input)
+		// Thinking is always on — adaptive only. Unlike Opus 4.8, an explicit
+		// `thinking: {type: "disabled"}` returns a 400, so we never send one; the
+		// effort path emits `thinking: {type: "adaptive"}`. Effort controls depth.
+		// Note: Fable uses a new tokenizer (~30% more tokens than Opus-tier for the
+		// same content), so context-budget math calibrated on Opus will undercount.
+		supportsReasoningEffort: ["low", "medium", "high", "xhigh", "max"],
+		requiredReasoningEffort: true,
+		reasoningEffort: "high",
+		supportsTemperature: false,
+		supportsReasoningDisplay: true,
+		description:
+			"Claude Fable 5 is Anthropic's most capable widely released model, for the most demanding reasoning and long-horizon agentic work.",
+	},
 	"claude-sonnet-4-6": {
 		maxTokens: 64_000, // Overridden to 8k if `enableReasoningEffort` is false.
 		contextWindow: 200_000, // Default 200K, extendable to 1M with beta flag 'context-1m-2025-08-07'
