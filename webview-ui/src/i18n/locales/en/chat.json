@@ -32,6 +32,14 @@
 		"title": "Start New Task",
 		"tooltip": "Begin a new task"
 	},
+	"seeNewChanges": {
+		"title": "See New Changes",
+		"tooltip": "View changes made since your last prompt"
+	},
+	"restoreChanges": {
+		"title": "Restore Changes",
+		"tooltip": "Restore files and task state to your last prompt"
+	},
 	"proceedAnyways": {
 		"title": "Proceed Anyways",
 		"tooltip": "Continue while command executes"
@@ -352,9 +360,9 @@
 		"support": "Please support Zoo Code by starring us on <githubLink>GitHub</githubLink>.",
 		"release": {
 			"heading": "What's New:",
-			"highlight1": "GLM-5.2 support — the latest GLM model is now available in your provider settings.",
-			"highlight2": "OpenCode-Go improvements — native model parameters, Anthropic-format routing, and a context-token fix for more reliable responses.",
-			"highlight3": "Tool-writer mode — a new specialized mode for writing and maintaining tool definitions is now available in the Marketplace."
+			"highlight1": "Friendli provider with GLM-5.2 support — use the latest GLM model through Friendli.",
+			"highlight2": "Native Ollama thinking/reasoning support — preserve reasoning output end-to-end when you use Ollama models.",
+			"highlight3": "Anthropic custom `apiModelId` fix — custom Anthropic model IDs now stay selected instead of silently falling back to `claude-sonnet-4-5`."
 		},
 		"cloudAgents": {
 			"heading": "New in the Cloud:",

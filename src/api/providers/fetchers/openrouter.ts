@@ -300,6 +300,20 @@ export const parseOpenRouterModel = ({
 		modelInfo.supportsTemperature = staticDef.supportsTemperature
 	}
 
+	// Sonnet 5 is adaptive-thinking only and rejects budget_tokens; mirror the static
+	// effort shape (like the opus/fable rule above) so xhigh/max stay reachable and
+	// getAnthropicReasoning takes the effort/adaptive branch, not the legacy budget one.
+	if (id === "anthropic/claude-sonnet-5") {
+		const staticDef = anthropicModels["claude-sonnet-5"]
+		modelInfo.maxTokens = staticDef.maxTokens
+		modelInfo.supportsReasoningEffort = staticDef.supportsReasoningEffort
+		modelInfo.reasoningEffort = staticDef.reasoningEffort
+		modelInfo.requiredReasoningEffort = staticDef.requiredReasoningEffort
+		modelInfo.supportsReasoningBudget = false
+		modelInfo.supportsReasoningDisplay = staticDef.supportsReasoningDisplay
+		modelInfo.supportsTemperature = staticDef.supportsTemperature
+	}
+
 	// Ensure correct reasoning handling for Claude Haiku 4.5 on OpenRouter
 	// Use budget control and disable effort-based reasoning fallback
 	if (id === "anthropic/claude-haiku-4.5") {

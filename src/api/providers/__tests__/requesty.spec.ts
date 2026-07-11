@@ -68,6 +68,24 @@ vitest.mock("../fetchers/modelCache", () => ({
 				cacheReadsPrice: 1,
 				description: "Claude Fable 5",
 			},
+			"anthropic/claude-sonnet-5": {
+				maxTokens: 128000,
+				contextWindow: 1000000,
+				supportsImages: true,
+				supportsPromptCache: true,
+				// Local fork: Sonnet 5 uses the effort/adaptive shape (not budget/binary), mirroring
+				// the requesty fetcher's claude-sonnet-5 patch.
+				supportsReasoningEffort: ["low", "medium", "high", "xhigh", "max"],
+				requiredReasoningEffort: true,
+				reasoningEffort: "high",
+				supportsReasoningDisplay: true,
+				supportsTemperature: false,
+				inputPrice: 3,
+				outputPrice: 15,
+				cacheWritesPrice: 3.75,
+				cacheReadsPrice: 0.3,
+				description: "Claude Sonnet 5",
+			},
 		})
 	}),
 }))
@@ -254,6 +272,41 @@ describe("RequestyHandler", () => {
 			expect(mockCreate).toHaveBeenCalledWith(
 				expect.objectContaining({
 					model: "anthropic/claude-fable-5",
+					max_tokens: 128000,
+					thinking: { thinking: { type: "adaptive" }, output_config: { effort: "high" } },
+					temperature: undefined,
+				}),
+			)
+		})
+
+		it("uses adaptive thinking for Claude Sonnet 5 when reasoning is enabled", async () => {
+			const handler = new RequestyHandler({
+				requestyApiKey: "test-key",
+				requestyModelId: "anthropic/claude-sonnet-5",
+				enableReasoningEffort: true,
+				modelMaxTokens: 32768,
+			})
+
+			const mockStream = {
+				async *[Symbol.asyncIterator]() {
+					yield {
+						id: "test-id",
+						choices: [{ delta: {} }],
+						usage: { prompt_tokens: 10, completion_tokens: 20 },
+					}
+				},
+			}
+
+			mockCreate.mockResolvedValue(mockStream)
+
+			const generator = handler.createMessage("test system prompt", [{ role: "user" as const, content: "test" }])
+			await generator.next()
+
+			// Effort models ignore modelMaxTokens, and the fork's requesty `thinking` param
+			// carries the AnthropicProviderReasoningParams envelope (the provider unwraps it).
+			expect(mockCreate).toHaveBeenCalledWith(
+				expect.objectContaining({
+					model: "anthropic/claude-sonnet-5",
 					max_tokens: 128000,
 					thinking: { thinking: { type: "adaptive" }, output_config: { effort: "high" } },
 					temperature: undefined,
@@ -526,6 +579,25 @@ describe("RequestyHandler", () => {
 			// default of 8192. completePrompt sends no reasoning fields.
 			expect(mockCreate).toHaveBeenCalledWith({
 				model: "anthropic/claude-fable-5",
+				max_tokens: 128000,
+				messages: [{ role: "system", content: "test prompt" }],
+				temperature: undefined,
+			})
+		})
+
+		it("omits temperature for Claude Sonnet 5 in completePrompt", async () => {
+			const handler = new RequestyHandler({
+				requestyApiKey: "test-key",
+				requestyModelId: "anthropic/claude-sonnet-5",
+			})
+			mockCreate.mockResolvedValue({ choices: [{ message: { content: "test completion" } }] })
+
+			await handler.completePrompt("test prompt")
+
+			// Effort-shape Sonnet 5: max_tokens is the model ceiling (128k), not the budget-path
+			// default of 8192. completePrompt sends no reasoning fields.
+			expect(mockCreate).toHaveBeenCalledWith({
+				model: "anthropic/claude-sonnet-5",
 				max_tokens: 128000,
 				messages: [{ role: "system", content: "test prompt" }],
 				temperature: undefined,

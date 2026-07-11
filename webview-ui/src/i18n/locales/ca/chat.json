@@ -40,6 +40,14 @@
 		"title": "Començar una nova tasca",
 		"tooltip": "Comença una nova tasca"
 	},
+	"seeNewChanges": {
+		"title": "Veure els canvis nous",
+		"tooltip": "Mostra els canvis fets des del teu últim prompt"
+	},
+	"restoreChanges": {
+		"title": "Restaurar canvis",
+		"tooltip": "Restaura els fitxers i l'estat de la tasca al teu últim prompt"
+	},
 	"proceedAnyways": {
 		"title": "Continuar de totes maneres",
 		"tooltip": "Continua mentre s'executa l'ordre"
@@ -333,9 +341,9 @@
 		"support": "Dona suport a Zoo Code fent-nos una estrella a <githubLink>GitHub</githubLink>.",
 		"release": {
 			"heading": "Novetats:",
-			"highlight1": "Suport per a GLM-5.2 — l'últim model GLM ja està disponible a la configuració del proveïdor.",
-			"highlight2": "Millores d'OpenCode-Go — paràmetres de model natius, encaminament en format Anthropic i correcció de context-token per a respostes més fiables.",
-			"highlight3": "Mode tool-writer — un nou mode especialitzat per escriure i mantenir definicions d'eines, ja disponible al Marketplace."
+			"highlight1": "Proveïdor Friendli amb suport per a GLM-5.2 — utilitza el model GLM més recent a través de Friendli.",
+			"highlight2": "Suport natiu de thinking/reasoning per a Ollama — conserva la sortida de raonament d'extrem a extrem quan fas servir models d'Ollama.",
+			"highlight3": "Correcció del `apiModelId` personalitzat d'Anthropic — els identificadors de model personalitzats d'Anthropic ara es mantenen seleccionats en lloc de tornar en silenci a `claude-sonnet-4-5`."
 		},
 		"cloudAgents": {
 			"heading": "Novetats al núvol:",

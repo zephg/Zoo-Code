@@ -53,17 +53,15 @@
 You can find a quick guide for migrating from Roo Code to Zoo Code in the [Roo→Zoo migration guide](https://docs.zoocode.dev/roo-to-zoo-migration). We plan to try and help users as they transition over, we have our [Reddit](https://www.reddit.com/r/ZooCode) and [Discord](https://discord.gg/VxfP4Vx3gX)
 for this exact support, so if you are having problems or if you have question, jump on and ask.
 
-## What's New in v3.62.0
+## What's New in v3.68.0
 
-- **GLM-5.2 support** — the latest GLM model is now available in your provider settings
-- **OpenCode-Go improvements** — native model parameters, Anthropic-format routing, and a context-token fix for more reliable responses
-- **Tool-writer mode** — a new specialized mode for writing and maintaining tool definitions, now available in the Marketplace
-- **LiteLLM session header** — forward taskId as X-Zoo-Session-ID request header for better request tracing
-- Fix apiRequestTimeout applied consistently across all providers
-- Fix diff view scroll position and tab handling on save/deny
-- Fix terminal completion signal delivery when end event wins the race
-- Refactor RateLimitClock out of Task static state for cleaner rate-limit handling
-- Security updates: vitest v4, shell-quote v1.8.4, esbuild v0.28.1, vite v8.0.16
+- **Friendli provider with GLM-5.2 support** — use the latest GLM model through Friendli.
+- **Native Ollama thinking/reasoning support** — preserve reasoning output end-to-end when you use Ollama models.
+- **Anthropic custom `apiModelId` fix** — custom Anthropic model IDs now stay selected instead of silently falling back to `claude-sonnet-4-5`.
+- Fix: Ollama provider tool result handling and premature context condensing.
+- Fix: preserve the parent-child task link when a delegated subtask is interrupted.
+- Improve Anthropic Vertex Claude content block handling for more reliable responses.
+- CI, nightly publishing, and dependency/tooling updates.
 
 <details>
   <summary>🌐 Available languages</summary>
@@ -87,7 +85,7 @@ for this exact support, so if you are having problems or if you have question, j
 - [简体中文](locales/zh-CN/README.md)
 - [繁體中文](locales/zh-TW/README.md)
 - ...
-  </details>
+      </details>
 
 ---
 

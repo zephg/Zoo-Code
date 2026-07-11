@@ -18,83 +18,103 @@ across merges. `AGENTS.md` only points here.
 3. Run the [post-merge checklist](#post-merge-checklist).
 4. Fast-forward `local/daily-driver`.
 
-> **Limitation:** the file lists here come from our fork's *non-merge* commits
+> **Limitation:** the file lists here come from our fork's _non-merge_ commits
 > (`git log --no-merges upstream/main..local/daily-driver`). Conflicts that were already resolved
-> *inside* past merge commits are not captured. When a new area starts conflicting, add a row.
+> _inside_ past merge commits are not captured. When a new area starts conflicting, add a row.
+
+> **Tag-topology gotcha (learned in the v3.68.0 sync):** our local `vX.Y.Z` release tags
+> **shadow** upstream's — ours point at our own release-prep commits (no PR-number suffix), while
+> upstream's real tags carry a `(#NNN)` suffix on the release commit. So `git describe` / tag
+> comparisons lie; the authoritative fork-point is
+> `git merge-base local/daily-driver <upstream-tag>`. Upstream's release tags are also **parallel
+> snapshots, not a linear chain** (`v3.64.0` is not an ancestor of `v3.66.0`), so **merge the single
+> target tag directly** — don't chain per-release merges. Always `git fetch upstream --tags` first so
+> the target tag resolves (local tags are never clobbered by fetch, which is why the shadowing
+> persists).
 
 ## Divergence at a glance
 
-| # | Local feature | Origin commit(s) | Nature |
-|---|---|---|---|
-| 1 | Effort-based Anthropic reasoning (Opus 4.6/4.7/4.8) | `fd93c5bde`, `64fc5fc98` | modifies shared provider logic |
-| 2 | OpenRouter effort-array mirroring + gpt-5.5 defs | `062657a7d`, `64fc5fc98` | modifies shared fetcher/registry |
-| 3 | Claude Fable 5 + safety-refusal handling | `811b5ca55` | modifies shared provider logic |
-| 4 | `"max"` reasoningEffort i18n label | `dd675fd3b` | mechanical i18n |
-| 5 | Workspace-scoped code-index config (`.roo/codebase-index.json`) | `3efa0728e`→`8f54e2274` (phases 1–5) | mostly new files + isolated wiring |
+| #   | Local feature                                                   | Origin commit(s)                     | Nature                             |
+| --- | --------------------------------------------------------------- | ------------------------------------ | ---------------------------------- |
+| 1   | Effort-based Anthropic reasoning (Opus 4.6/4.7/4.8)             | `fd93c5bde`, `64fc5fc98`             | modifies shared provider logic     |
+| 2   | OpenRouter effort-array mirroring + gpt-5.5 defs                | `062657a7d`, `64fc5fc98`             | modifies shared fetcher/registry   |
+| 3   | Claude Fable 5 + safety-refusal handling                        | `811b5ca55`                          | modifies shared provider logic     |
+| 4   | `"max"` reasoningEffort i18n label                              | `dd675fd3b`                          | mechanical i18n                    |
+| 5   | Workspace-scoped code-index config (`.roo/codebase-index.json`) | `3efa0728e`→`8f54e2274` (phases 1–5) | mostly new files + isolated wiring |
 
 ## Conflict-prone code paths (shared files we modified)
 
 Risk = **upstream churn** (commits touching the file on `upstream/main` in the last 6 months) ×
-**change nature** (isolated additive wiring merges cleanly; changes to shared *logic* conflict
+**change nature** (isolated additive wiring merges cleanly; changes to shared _logic_ conflict
 hard). High churn with an isolated add is usually a clean 3-way merge; low churn on keystone logic
 can still be the ugliest conflict.
 
 ### Feature 1+3 — Anthropic reasoning + Fable
 
-| File | Upstream churn (6mo) | Our change | Change nature | Risk |
-|---|---:|---|---|---|
-| `packages/types/src/providers/anthropic.ts` | 10 | Effort-shape model entries (Opus 4.6/4.7/4.8, Fable 5): `supportsReasoningEffort`, `requiredReasoningEffort`, `supportsTemperature:false`, **no** `supportsReasoningBudget` | modifies contract registry | **HIGH** (this shape drives the request payload) |
-| `src/api/transform/reasoning.ts` | 5 | `getAnthropicReasoning` branch on `supportsReasoningEffort && !supportsReasoningBudget` → `{ thinking:{type:"adaptive"}, output_config:{effort} }` | keystone logic | **HIGH** (low churn but ugliest if upstream refactors reasoning extraction) |
-| `src/api/providers/anthropic.ts` | 23 | Spread `reasoning.thinking` + `reasoning.output_config` into request; Fable `stop_reason:"refusal"` → category-aware text chunk | modifies shared logic | **HIGH** |
-| `src/api/providers/anthropic-vertex.ts` | 17 | Destructure + spread `reasoning.thinking`/`output_config`; no provider-side adaptive guard (registry shape alone decides payload) | modifies shared logic | **MED** |
-| `packages/types/src/provider-settings.ts` | 17 | Effort field/enum plumbing | modifies shared types | **MED** |
-| `src/shared/api.ts` | 12 | Effort plumbing | modifies shared types | **MED** |
-| `packages/types/src/model.ts` | 4 | Effort type support | modifies shared types | **LOW–MED** |
+| File                                        | Upstream churn (6mo) | Our change                                                                                                                                                                                | Change nature              | Risk                                                                        |
+| ------------------------------------------- | -------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | --------------------------------------------------------------------------- |
+| `packages/types/src/providers/anthropic.ts` |                   10 | Effort-shape model entries (Opus 4.6/4.7/4.8, Fable 5, **Sonnet 5**): `supportsReasoningEffort`, `requiredReasoningEffort`, `supportsTemperature:false`, **no** `supportsReasoningBudget` | modifies contract registry | **HIGH** (this shape drives the request payload)                            |
+| `packages/types/src/providers/vertex.ts`    |                    — | Effort-shape Vertex entries (Opus 4.8, **Sonnet 5**); Vertex has no provider-side guard so the registry shape alone must steer `getAnthropicReasoning`                                    | modifies contract registry | **MED**                                                                     |
+| `src/api/transform/reasoning.ts`            |                    5 | `getAnthropicReasoning` branch on `supportsReasoningEffort && !supportsReasoningBudget` → `{ thinking:{type:"adaptive"}, output_config:{effort} }`                                        | keystone logic             | **HIGH** (low churn but ugliest if upstream refactors reasoning extraction) |
+| `src/api/providers/anthropic.ts`            |                   23 | Spread `reasoning.thinking` + `reasoning.output_config` into request; Fable `stop_reason:"refusal"` → category-aware text chunk                                                           | modifies shared logic      | **HIGH**                                                                    |
+| `src/api/providers/anthropic-vertex.ts`     |                   17 | Destructure + spread `reasoning.thinking`/`output_config`; no provider-side adaptive guard (registry shape alone decides payload)                                                         | modifies shared logic      | **MED**                                                                     |
+| `packages/types/src/provider-settings.ts`   |                   17 | Effort field/enum plumbing                                                                                                                                                                | modifies shared types      | **MED**                                                                     |
+| `src/shared/api.ts`                         |                   12 | Effort plumbing                                                                                                                                                                           | modifies shared types      | **MED**                                                                     |
+| `packages/types/src/model.ts`               |                    4 | Effort type support                                                                                                                                                                       | modifies shared types      | **LOW–MED**                                                                 |
 
 **Provider guards to preserve (semantic, easy to break on merge):**
-- **Vertex** has *no* provider-side adaptive-thinking guard — the registry shape alone decides the
+
+- **Vertex** has _no_ provider-side adaptive-thinking guard — the registry shape alone decides the
   payload. Opus 4.8 is on the effort shape; **Opus 4.7/4.6 still declare `supportsReasoningBudget`
   and will 400 on the live API for 4.7 — known follow-up from `fd93c5bde`.** Do not "fix" this by
   reintroducing the budget shape on Vertex 4.8.
 - **Bedrock** has its own `isAdaptiveThinkingModel(modelId)` guard in
-  `src/api/providers/bedrock.ts` (matches `opus-4-7`, `opus-4-8`, `sonnet-4-7`, `sonnet-4-8` after
-  `parseBaseModelId`) that overrides the payload regardless of registry shape. Bedrock registry
-  entries keep the upstream-style `supportsReasoningBudget` shape — intentional and correct there.
+  `src/api/providers/bedrock.ts` (matches `opus-4-7`, `opus-4-8`, `sonnet-4-7`, `sonnet-4-8`,
+  `sonnet-5` after `parseBaseModelId`) that overrides the payload regardless of registry shape.
+  This guard is **upstream/shared code** — the fork does _not_ modify `bedrock.ts` (upstream added
+  `sonnet-5` itself in #778), so it merges clean. Bedrock registry entries keep the upstream-style
+  `supportsReasoningBudget` shape — intentional and correct there.
 - Anything that re-declares `supportsReasoningBudget` on the effort models drops them onto the
-  legacy budget path, which Opus 4.7+ rejects with a 400.
+  legacy budget path, which Opus 4.7+ / Fable 5 / Sonnet 5 reject with a 400.
 
-When adding a new effort-capable model, mirror the existing 4.7/4.8 entries and add a parametrized
-test in `src/api/providers/__tests__/anthropic.spec.ts` (effort assertion, `requiredReasoningEffort`
-always-on, user-chosen effort) rather than upstream-style budget/binary assertions.
+When adopting a new effort-capable model, mirror the existing 4.7/4.8/Fable-5 entries across **five**
+sites: the `packages/types` Anthropic **and** Vertex registries, plus the `openrouter.ts` **and**
+`requesty.ts` fetcher override blocks (set `supportsReasoningBudget:false`, not
+`supportsReasoningBinary`). Bedrock needs no change (shared guard). Then update effort assertions —
+not upstream-style budget/binary — in **all** of: `anthropic.spec.ts`, `anthropic-vertex.spec.ts`,
+the `requesty.spec.ts` provider spec (**including its `getModels` mock entry**), and the
+`openrouter.spec.ts` / `requesty.spec.ts` fetcher specs. This is exactly what the v3.68.0 sync did
+for **Claude Sonnet 5** — upstream #778 shipped it budget/binary; the fork converts it to effort-shape.
 
-### Feature 2 — OpenRouter / OpenAI effort
+### Feature 2 — OpenRouter / OpenAI / Requesty effort
 
-| File | Upstream churn (6mo) | Our change | Change nature | Risk |
-|---|---:|---|---|---|
-| `packages/types/src/providers/openai.ts` | 8 | gpt-5.5 defs + static effort arrays | modifies registry | **MED** |
-| `src/api/providers/fetchers/openrouter.ts` | 6 | Dynamic fetcher patches known IDs (`anthropic/claude-opus-4.7`, `anthropic/claude-opus-4.8`, gpt-5.5 family) to mirror the static effort arrays so `xhigh`/`max` stay reachable from the UI | modifies shared fetcher | **MED** |
+| File                                       | Upstream churn (6mo) | Our change                                                                                                                                                                                                                                                      | Change nature           | Risk    |
+| ------------------------------------------ | -------------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------- |
+| `packages/types/src/providers/openai.ts`   |                    8 | gpt-5.5 defs + static effort arrays                                                                                                                                                                                                                             | modifies registry       | **MED** |
+| `src/api/providers/fetchers/openrouter.ts` |                    6 | Dynamic fetcher patches known IDs (`anthropic/claude-opus-4.7`, `4.8`, `claude-sonnet-5`, `claude-fable-5`, gpt-5.5 family) to mirror the static effort arrays so `xhigh`/`max` stay reachable from the UI                                                      | modifies shared fetcher | **MED** |
+| `src/api/providers/fetchers/requesty.ts`   |                  low | Same effort-array mirroring as openrouter for `anthropic/claude-fable-5` + `claude-sonnet-5` (sets `supportsReasoningBudget:false`). Upstream's Sonnet 5 (#778) patches the same block → conflict-prone. **Was missing from this map before the v3.68.0 sync.** | modifies shared fetcher | **MED** |
 
 ### Feature 5 — Workspace-scoped code-index (modified shared files)
 
-| File | Upstream churn (6mo) | Our change | Change nature | Risk |
-|---|---:|---|---|---|
-| `src/core/webview/ClineProvider.ts` | 81 | Wire code-index scope | isolated additive | **MED** (high churn, but additive — usually clean 3-way) |
-| `src/core/webview/webviewMessageHandler.ts` | 59 | Code-index scope message handlers | isolated additive | **MED** |
-| `packages/types/src/vscode-extension-host.ts` | 52 | Code-index host type | isolated additive | **MED** |
-| `webview-ui/src/components/chat/CodeIndexPopover.tsx` | 2 | Scope switcher + pinned-by-dotfile badge | UI additive | **LOW–MED** |
-| `src/services/code-index/manager.ts` | 2 | Two-scope wiring | our changes dominate | **LOW–MED** |
-| `src/services/code-index/config-manager.ts` | 1 | Two-scope config model | our changes dominate | **LOW** |
-| `packages/types/src/codebase-index.ts` | 1 | Config shape/types | our changes dominate | **LOW** |
+| File                                                  | Upstream churn (6mo) | Our change                               | Change nature        | Risk                                                     |
+| ----------------------------------------------------- | -------------------: | ---------------------------------------- | -------------------- | -------------------------------------------------------- |
+| `src/core/webview/ClineProvider.ts`                   |                   81 | Wire code-index scope                    | isolated additive    | **MED** (high churn, but additive — usually clean 3-way) |
+| `src/core/webview/webviewMessageHandler.ts`           |                   59 | Code-index scope message handlers        | isolated additive    | **MED**                                                  |
+| `packages/types/src/vscode-extension-host.ts`         |                   52 | Code-index host type                     | isolated additive    | **MED**                                                  |
+| `webview-ui/src/components/chat/CodeIndexPopover.tsx` |                    2 | Scope switcher + pinned-by-dotfile badge | UI additive          | **LOW–MED**                                              |
+| `src/services/code-index/manager.ts`                  |                    2 | Two-scope wiring                         | our changes dominate | **LOW–MED**                                              |
+| `src/services/code-index/config-manager.ts`           |                    1 | Two-scope config model                   | our changes dominate | **LOW**                                                  |
+| `packages/types/src/codebase-index.ts`                |                    1 | Config shape/types                       | our changes dominate | **LOW**                                                  |
 
 ### i18n
 
-| Files | Our change | Risk |
-|---|---|---|
+| Files                                                      | Our change                                               | Risk                                                                           |
+| ---------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `webview-ui/src/i18n/locales/*/settings.json` (18 locales) | `"max"` reasoningEffort label + code-index scope strings | **MED** — frequent but mechanical; resolve by taking both sides / regenerating |
 
 ## Fork-only files (added — no textual conflict, watch for semantic drift)
 
-These don't exist upstream, so they never produce merge markers. The risk is *drift*: if upstream
+These don't exist upstream, so they never produce merge markers. The risk is _drift_: if upstream
 restructures the code-index service or the types package, these need re-wiring, not merging.
 
 - `packages/types/schemas/codebase-index.schema.json` — published JSON Schema for the dotfile
@@ -112,8 +132,10 @@ These conflict on essentially **every** upstream merge and are expected — reso
 don't investigate them as regressions.
 
 - `src/package.json` — version string → re-bump (see checklist re: VSIX)
-- `CHANGELOG.md` — take the union; keep our fork entries
-- `README.md`, `locales/*/README.md`, `webview-ui/src/i18n/locales/*/chat.json` — release/marketing churn
+- `src/core/webview/ClineProvider.ts` — the `latestAnnouncementId` string collides every release → take upstream's
+- `CHANGELOG.md` — take the union; keep our fork entries (the HEAD side is usually empty — upstream just prepends the new `## [X.Y.Z]` sections, so "take theirs" on the hunk preserves our older entries below)
+- `README.md`, `locales/*/README.md`, `webview-ui/src/i18n/locales/*/chat.json` — release/marketing churn; the conflict is the "What's New" / announcement `highlightN` block → take upstream's (in v3.68.0 our v3.62.0 highlights were superseded). Fork branding (Zoo Code, migration guide) sits _outside_ the conflict and auto-merges — do **not** `git checkout --theirs` the whole file
+- `webview-ui/src/i18n/locales/*/settings.json` usually **auto-merges** (both sides add different keys) — our `"max"` label + code-index strings and upstream's new keys coexist
 - `AGENTS.md` — now just a pointer paragraph, so the footprint is small
 
 ## Post-merge checklist
@@ -127,7 +149,22 @@ don't investigate them as regressions.
       every recent merge). A clean run = those 22 and nothing else; a 23rd is the regression to
       investigate.
 - [ ] Verify the Anthropic effort payload still emits `output_config.effort` (not `budget_tokens`)
-      for Opus 4.7/4.8 — see the provider guards above.
+      for Opus 4.7/4.8, Fable 5, and Sonnet 5 — see the provider guards above.
+- [ ] **The full build needs a networked, non-sandboxed shell:** `pnpm install` runs postinstalls
+      that download the ripgrep binary and the tree-sitter WASM grammars. If those are absent the
+      `services/tree-sitter/**` and `__tests__/dist_assets.spec.ts` suites fail on missing _assets_
+      only (not code) — a false alarm. Run `pnpm install && pnpm build && pnpm vsix --force` before
+      trusting the full `pnpm -w test` count.
+
+## Sync log / decisions
+
+- **v3.68.0** (from v3.62.0-era, merge-base `8c3ae1e8b`) — 63 upstream commits / 337 files, but the
+  real conflict surface was ~14 code files, essentially all from upstream's **Claude Sonnet 5**
+  (#778). **Decision:** adopt Sonnet 5 on the fork's **effort-shape** (not upstream's budget/binary)
+  across the Anthropic + Vertex registries and the OpenRouter + Requesty fetchers — Sonnet 5 is
+  adaptive-only and 400s on `budget_tokens`, so the budget shape would break it. Also surfaced:
+  `fetchers/requesty.ts` was an undocumented fork divergence (now mapped in Feature 2), and upstream
+  removed the `openai-error-handler` shim (#767 — all callers moved to `error-handler`, merged clean).
 
 ## Regenerate this map
 

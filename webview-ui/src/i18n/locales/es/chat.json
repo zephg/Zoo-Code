@@ -32,6 +32,14 @@
 		"title": "Iniciar nueva tarea",
 		"tooltip": "Comienza una nueva tarea"
 	},
+	"seeNewChanges": {
+		"title": "Ver cambios nuevos",
+		"tooltip": "Muestra los cambios hechos desde tu último prompt"
+	},
+	"restoreChanges": {
+		"title": "Restaurar cambios",
+		"tooltip": "Restaura los archivos y el estado de la tarea a tu último prompt"
+	},
 	"proceedAnyways": {
 		"title": "Continuar de todos modos",
 		"tooltip": "Continuar mientras se ejecuta el comando"
@@ -333,9 +341,9 @@
 		"support": "Apoya a Zoo Code dándonos una estrella en <githubLink>GitHub</githubLink>.",
 		"release": {
 			"heading": "Novedades:",
-			"highlight1": "Soporte para GLM-5.2 — el último modelo GLM ya está disponible en la configuración del proveedor.",
-			"highlight2": "Mejoras de OpenCode-Go — parámetros de modelo nativos, enrutamiento en formato Anthropic y corrección de context-token para respuestas más fiables.",
-			"highlight3": "Modo tool-writer — un nuevo modo especializado para escribir y mantener definiciones de herramientas, ya disponible en el Marketplace."
+			"highlight1": "Proveedor Friendli con soporte para GLM-5.2 — usa el modelo GLM más reciente a través de Friendli.",
+			"highlight2": "Compatibilidad nativa de thinking/reasoning para Ollama — conserva la salida de razonamiento de extremo a extremo cuando uses modelos de Ollama.",
+			"highlight3": "Corrección de `apiModelId` personalizado de Anthropic — los IDs de modelo personalizados de Anthropic ahora permanecen seleccionados en lugar de volver silenciosamente a `claude-sonnet-4-5`."
 		},
 		"cloudAgents": {
 			"heading": "Novedades en la Nube:",
