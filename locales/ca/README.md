@@ -30,11 +30,15 @@
 
 Pots trobar una guia ràpida per passar de Roo Code a Zoo Code a la [guia de migració Roo→Zoo](https://docs.zoocode.dev/roo-to-zoo-migration). Volem ajudar tant com puguem durant la transició, i per això tens el nostre [Reddit](https://www.reddit.com/r/ZooCode) i [Discord](https://discord.gg/VxfP4Vx3gX) per a aquest suport. Si tens problemes o alguna pregunta, entra i pregunta.
 
-## Novetats a la v3.62.0
+## Novetats a la v3.68.0
 
-- **Suport per a GLM-5.2** — l'últim model GLM ja està disponible a la configuració del proveïdor
-- **Millores d'OpenCode-Go** — paràmetres de model natius, encaminament en format Anthropic i correcció de context-token per a respostes més fiables
-- **Mode tool-writer** — un nou mode especialitzat per escriure i mantenir definicions d'eines, ja disponible al Marketplace
+- **Proveïdor Friendli amb suport per a GLM-5.2** — utilitza el model GLM més recent a través de Friendli.
+- **Suport natiu de thinking/reasoning per a Ollama** — conserva la sortida de raonament d'extrem a extrem quan fas servir models d'Ollama.
+- **Correcció del `apiModelId` personalitzat d'Anthropic** — els identificadors de model personalitzats d'Anthropic ara es mantenen seleccionats en lloc de tornar en silenci a `claude-sonnet-4-5`.
+- Correcció: gestió dels resultats d'eines del proveïdor Ollama i condensació prematura del context.
+- Correcció: conserva l'enllaç pare-fill de la tasca quan s'interromp una subtasca delegada.
+- Millora la gestió dels blocs de contingut de Claude a Anthropic Vertex per obtenir respostes més fiables.
+- Actualitzacions de CI, publicació nightly i dependències/eines.
 
 ## Què pot fer Zoo Code per TU?
 

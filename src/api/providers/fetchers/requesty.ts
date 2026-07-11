@@ -59,6 +59,18 @@ export async function getRequestyModels(baseUrl?: string, apiKey?: string): Prom
 				modelInfo.supportsTemperature = false
 			}
 
+			if (rawModel.id === "anthropic/claude-sonnet-5") {
+				// Sonnet 5 is adaptive-only and rejects budget_tokens; mirror the static
+				// effort shape (same as the fable-5 rule above) so it takes the effort branch.
+				const staticDef = anthropicModels["claude-sonnet-5"]
+				modelInfo.supportsReasoningEffort = staticDef.supportsReasoningEffort
+				modelInfo.reasoningEffort = staticDef.reasoningEffort
+				modelInfo.requiredReasoningEffort = staticDef.requiredReasoningEffort
+				modelInfo.supportsReasoningDisplay = staticDef.supportsReasoningDisplay
+				modelInfo.supportsReasoningBudget = false
+				modelInfo.supportsTemperature = false
+			}
+
 			models[rawModel.id] = modelInfo
 		}
 	} catch (error) {

@@ -53,6 +53,30 @@ export const anthropicModels = {
 			},
 		],
 	},
+	"claude-sonnet-5": {
+		maxTokens: 128_000, // Overridden to 8k if `enableReasoningEffort` is false.
+		contextWindow: 1_000_000, // 1M context window native (no beta header required)
+		supportsImages: true,
+		supportsPromptCache: true,
+		inputPrice: 2.0, // $2 per million input tokens (introductory pricing through Aug 31, 2026)
+		outputPrice: 10.0, // $10 per million output tokens (introductory pricing through Aug 31, 2026)
+		cacheWritesPrice: 2.5, // $2.50 per million tokens (introductory pricing through Aug 31, 2026)
+		cacheReadsPrice: 0.2, // $0.20 per million tokens (introductory pricing through Aug 31, 2026)
+		// Sonnet 5 is adaptive-thinking only, like Opus 4.7+ and Fable 5 on the
+		// direct Anthropic provider path: manual extended thinking (budget_tokens)
+		// is removed and returns a 400, and sampling parameters
+		// (temperature/top_p/top_k) return a 400. Fork convention: drive it through
+		// the effort path (thinking:{type:"adaptive"} + output_config.effort);
+		// declaring supportsReasoningBudget would route it to the legacy budget
+		// branch in getAnthropicReasoning and 400. Mirrors Opus 4.7/4.8/Fable 5.
+		supportsReasoningEffort: ["low", "medium", "high", "xhigh", "max"],
+		requiredReasoningEffort: true,
+		reasoningEffort: "high",
+		supportsTemperature: false,
+		supportsReasoningDisplay: true,
+		description:
+			"Claude Sonnet 5 is the best combination of speed and intelligence, optimized for coding, tool use, and agentic workflows.",
+	},
 	"claude-sonnet-4-5": {
 		maxTokens: 64_000, // Overridden to 8k if `enableReasoningEffort` is false.
 		contextWindow: 200_000, // Default 200K, extendable to 1M with beta flag 'context-1m-2025-08-07'

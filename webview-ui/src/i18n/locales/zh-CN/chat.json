@@ -40,6 +40,14 @@
 		"title": "开始新任务",
 		"tooltip": "开始一个新任务"
 	},
+	"seeNewChanges": {
+		"title": "查看新更改",
+		"tooltip": "查看自上次 prompt 以来所做的更改"
+	},
+	"restoreChanges": {
+		"title": "恢复更改",
+		"tooltip": "将文件和任务状态恢复到上次 prompt"
+	},
 	"proceedAnyways": {
 		"title": "仍然继续",
 		"tooltip": "在命令执行时继续"
@@ -334,9 +342,9 @@
 		"support": "请在 <githubLink>GitHub</githubLink> 上为 Zoo Code 点星支持我们。",
 		"release": {
 			"heading": "新增功能：",
-			"highlight1": "GLM-5.2 支持 — 最新 GLM 模型现已在提供商设置中可用。",
-			"highlight2": "OpenCode-Go 改进 — 原生模型参数、Anthropic 格式路由和 context-token 修复，提供更可靠的响应。",
-			"highlight3": "Tool-writer 模式 — 用于编写和维护工具定义的新专用模式，现已在 Marketplace 中可用。"
+			"highlight1": "支持 GLM-5.2 的 Friendli 提供商 — 通过 Friendli 使用最新的 GLM 模型。",
+			"highlight2": "Ollama 原生 thinking/reasoning 支持 — 使用 Ollama 模型时可端到端保留 reasoning 输出。",
+			"highlight3": "Anthropic 自定义 `apiModelId` 修复 — 自定义 Anthropic 模型 ID 现在会保持选中，不再静默回退到 `claude-sonnet-4-5`。"
 		},
 		"cloudAgents": {
 			"heading": "云端新功能：",

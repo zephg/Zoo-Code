@@ -40,6 +40,14 @@
 		"title": "새 작업 시작",
 		"tooltip": "새 작업 시작하기"
 	},
+	"seeNewChanges": {
+		"title": "새 변경 사항 보기",
+		"tooltip": "마지막 prompt 이후 적용된 변경 사항 보기"
+	},
+	"restoreChanges": {
+		"title": "변경 사항 복원",
+		"tooltip": "파일과 작업 상태를 마지막 prompt로 복원"
+	},
 	"proceedAnyways": {
 		"title": "그래도 계속",
 		"tooltip": "명령 실행 중에도 계속 진행"
@@ -333,9 +341,9 @@
 		"support": "<githubLink>GitHub</githubLink>에서 별표를 눌러 Zoo Code를 응원해 주세요.",
 		"release": {
 			"heading": "새로운 기능:",
-			"highlight1": "GLM-5.2 지원 — 최신 GLM 모델이 이제 공급자 설정에서 사용 가능합니다.",
-			"highlight2": "OpenCode-Go 개선 — 네이티브 모델 매개변수, Anthropic 형식 라우팅, 더 안정적인 응답을 위한 context-token 수정.",
-			"highlight3": "Tool-writer 모드 — 도구 정의를 작성하고 유지 관리하는 새로운 전문 모드가 Marketplace에서 사용 가능합니다."
+			"highlight1": "GLM-5.2를 지원하는 Friendli 프로바이더 — Friendli를 통해 최신 GLM 모델을 사용할 수 있습니다.",
+			"highlight2": "Ollama용 네이티브 thinking/reasoning 지원 — Ollama 모델을 사용할 때 reasoning 출력을 처음부터 끝까지 유지합니다.",
+			"highlight3": "Anthropic 사용자 지정 `apiModelId` 수정 — 사용자 지정 Anthropic 모델 ID가 이제 조용히 `claude-sonnet-4-5`로 되돌아가지 않고 선택된 상태로 유지됩니다."
 		},
 		"cloudAgents": {
 			"heading": "클라우드의 새로운 기능:",

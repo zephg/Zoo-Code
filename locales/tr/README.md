@@ -30,11 +30,15 @@
 
 Roo Code'dan Zoo Code'a geçmek için hızlı bir rehberi [Roo→Zoo geçiş rehberinde](https://docs.zoocode.dev/roo-to-zoo-migration) bulabilirsin. Geçiş sürecinde kullanıcılara elimizden geldiğince yardımcı olmak istiyoruz ve bunun için [Reddit](https://www.reddit.com/r/ZooCode) ile [Discord](https://discord.gg/VxfP4Vx3gX) topluluklarımız var. Bir sorun yaşarsan ya da sorunun olursa gel ve sor.
 
-## v3.62.0'daki Yenilikler
+## v3.68.0'daki Yenilikler
 
-- **GLM-5.2 desteği** — en yeni GLM modeli artık sağlayıcı ayarlarında mevcut
-- **OpenCode-Go iyileştirmeleri** — yerel model parametreleri, Anthropic formatı yönlendirme ve daha güvenilir yanıtlar için context-token düzeltmesi
-- **Tool-writer modu** — araç tanımlarını yazmak ve sürdürmek için yeni bir uzmanlaşmış mod, artık Marketplace'te mevcut
+- **GLM-5.2 destekli Friendli sağlayıcısı** — en yeni GLM modelini Friendli üzerinden kullan.
+- **Ollama için yerel thinking/reasoning desteği** — Ollama modellerini kullanırken reasoning çıktısını uçtan uca koru.
+- **Anthropic özel `apiModelId` düzeltmesi** — özel Anthropic model kimlikleri artık sessizce `claude-sonnet-4-5` modeline geri dönmek yerine seçili kalıyor.
+- Düzeltme: Ollama sağlayıcısında araç sonucu işleme ve erken bağlam yoğunlaştırma.
+- Düzeltme: yetkilendirilen bir alt görev kesintiye uğradığında görev üst-alt bağlantısını koru.
+- Daha güvenilir yanıtlar için Anthropic Vertex Claude içerik bloğu işleme iyileştirildi.
+- CI, nightly yayınlama ve bağımlılık/araç güncellemeleri.
 
 ## Zoo Code SİZİN İçin Ne Yapabilir?
 

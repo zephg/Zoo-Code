@@ -1,5 +1,77 @@
 # Zoo Code Changelog
 
+## [3.68.0]
+
+### Minor Changes
+
+- Add Friendli provider with GLM-5.2 support for another hosted way to use the latest GLM model (#722 by @Lee-Si-Yoon, PR #721 by @Lee-Si-Yoon)
+- Add native thinking/reasoning support for Ollama models to preserve reasoning output end-to-end (#831 by @navedmerchant, PR #832 by @navedmerchant)
+- Fix(anthropic): honor custom `apiModelId` selections instead of silently defaulting to `claude-sonnet-4-5` (#418 by @tatianadenel-devops, #843 by @grizmin, PR #842 by @grizmin)
+- Fix(ollama): correctly handle tool results and prevent premature context condensing (#847 by @navedmerchant, PR #848 by @navedmerchant)
+- Improve Anthropic Vertex Claude content block handling for more reliable responses (#788 by @daewoongoh, PR #789 by @daewoongoh)
+- Fix(task-lifecycle): preserve the parent-child link when a delegated subtask is interrupted (#560 by @edelauna, PR #787 by @edelauna)
+- Refactor: remove the deprecated `openai-error-handler` shim and use the shared `error-handler` directly (#766 by @daewoongoh, PR #767 by @daewoongoh)
+- Feat(nightly-publish): publish Open VSX pre-releases and skip nightly publish on release merges (#784 by @edelauna, PR #790 by @edelauna)
+- Fix(ci): don't skip fork-PR label reconciliation on scheduled and manual runs (PR #234 by @app/roomote)
+- Fix(label-pr-review-state): detect merge conflicts and label PRs with `has-conflicts` (PR #269 by @app/roomote)
+- Chore(deps): update the `github/codeql-action` digest to `411c4c9` (PR #803 by @app/renovate)
+- Chore(deps): update `@types/react` to `v18.3.31` (PR #805 by @app/renovate)
+- Chore(deps): update `axios` to `v1.18.1` (PR #806 by @app/renovate)
+- Chore: merge the v3.66.0 release preparation branch into `main` (PR #795 by @navedmerchant)
+
+## [3.66.0]
+
+### Minor Changes
+
+- Add Claude Sonnet 5 support across Anthropic, Bedrock, and Vertex providers (#777 by @navedmerchant, PR #778 by @navedmerchant)
+- Upgrade Semble to v0.4.1 with flattened result parsing and localized status messages (#733 by @navedmerchant, PR #734 by @navedmerchant)
+- Add task-lifecycle status transition guard and startup delegation reconciliation to prevent invalid task state transitions (#366 by @edelauna, PR #692 by @edelauna)
+- Fix: LiteLLM cache key collision and silent fallback to a non-existent default model (#638 by @awschmeder, PR #647 by @awschmeder)
+- Fix: reliable auto context condensing for the VS Code Language Model API (#714 by @simurg79, PR #710 by @simurg79)
+- Fix(ThinkingBudget): support `xhigh` and all extended reasoning effort values (#713 by @6rz6, PR #774 by @edelauna)
+- Fix(deepseek): round-trip `reasoning_content` in thinking mode to prevent 400 errors (#201 by @leosdad, PR #775 by @edelauna)
+- Fix(gemini): base64-encode `thoughtSignature` bypass token to fix the Vertex AI empty-response loop (#536 by @edelauna, PR #776 by @edelauna)
+- Fix: provider cache reset after settings import (#689 by @JunyongParkDev, PR #726 by @JunyongParkDev)
+- Fix(delegation): atomically serialize `reopenParentFromDelegation` (#365 by @edelauna, PR #725 by @edelauna)
+- Fix: shell default profile name type guard (#686 by @daewoongoh, PR #687 by @daewoongoh)
+- chore(security): dependency-review, invisible-char detection, and least-privilege workflow permissions (#782 by @edelauna, PR #783 by @edelauna)
+- chore: upgrade `@anthropic-ai/sdk` to 0.104.1 and `@anthropic-ai/vertex-sdk` to 0.17.1 (#438 by @p12tic, PR #600 by @p12tic)
+- chore: enforce no-floating-promises in core/task/ (PR #253 by @0xMink)
+- ci: improve PR label reconciliation with CI gating and event triggers (PR #228 by @app/roomote)
+- fix(deps): update AI SDKs and providers (PR #744 by @app/renovate)
+- chore(deps): update build, lint, and test tooling (PR #745 by @app/renovate)
+- chore(deps): update dependency mermaid to v11.16.0 (PR #742 by @app/renovate)
+- chore(deps): update dependency posthog-js to v1.393.5 (PR #746 by @app/renovate)
+- chore(deps): update dependency ajv to v8.20.0 (PR #747 by @app/renovate)
+- chore(deps): update dependency react-use to v17.6.1 (PR #740 by @app/renovate)
+- chore(deps): update dependency reconnecting-eventsource to v1.6.5 (PR #741 by @app/renovate)
+- chore(deps): update dependency pdf-parse to v1.1.4 (PR #739 by @app/renovate)
+- chore(deps): update dependency ovsx to v0.10.12 (PR #738 by @app/renovate)
+- chore(deps): update dependency only-allow to v1.2.2 (PR #737 by @app/renovate)
+
+## [3.64.0]
+
+### Minor Changes
+
+- Add Rules Management UI — new Rules tab in Settings to create, delete, and open global and workspace Zoo rules (#660 by @ivanarifin, PR #657 by @ivanarifin)
+- Add completion change review actions — "See New Changes" and "Restore Changes" buttons after task completion let you inspect and undo changes from the latest prompt (#661 by @ivanarifin, PR #633 by @ivanarifin)
+- Add kimi-k2p7-code model on Fireworks provider (PR #599 by @p12tic)
+- feat: add abort signal core plumbing — threads AbortSignal through the API metadata layer for future provider-level cancellation (#434 by @easonLiangWorldedtech, PR #674 by @easonLiangWorldedtech)
+- feat: add TaskSemaphore utility for parallel task coordination (#362 by @edelauna, PR #675 by @edelauna)
+- feat(experiments): register PARALLEL_TOOL_EXECUTION feature flag (internal-only) (#363 by @edelauna, PR #678 by @edelauna)
+- Add Roo Code history import to the About page (PR #141 by @roomote)
+- Fix: configurable relaxed diff thresholds and diagnostics reduce "edit unsuccessful" errors (#452 by @DannyVarodBlueVine, PR #470 by @nigeldelviero)
+- Fix: auto-closing edited files is now opt-in — the setting defaults to off (#719 by @edelauna, PR #720 by @edelauna)
+- Fix(diff-view): make auto-closing edited files opt-in, fixing setting that could not be unchecked (#667 by @navedmerchant, PR #668 by @navedmerchant)
+- Fix(delegation): serialize delegateParentAndOpenChild with atomicReadAndUpdate to prevent race conditions (#364 by @edelauna, #365 by @edelauna, PR #691 by @edelauna)
+- Fix(ask_followup_question): report non-array follow_up suggestions as a type error (#511 by @nh2, PR #662 by @nh2)
+- Fix: parse Gemma 4 `<thought>` reasoning tags alongside `<think>` (#323 by @sagidM, PR #324 by @sagidM)
+- docs(prompt): enhance apply_diff tool instructions to improve Gemini model success rate (#611 by @awschmeder, PR #619 by @awschmeder)
+- chore(deps): update undici to v6.27.0 [security] (PR #659 by @renovate)
+- chore(deps): update @types/node, @vscode/test-cli, execa, axios (PR #669, #670, #671, #673 by @renovate)
+- test(mcp): fix McpHub Windows command wrapping test ordering (PR #632 by @HappyLiang12)
+- fix(McpHub): resolve flaky McpHub.spec.ts tests after Vitest 4 upgrade (PR #666 by @edelauna)
+
 ## [3.62.0]
 
 ### Minor Changes

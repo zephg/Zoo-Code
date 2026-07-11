@@ -30,11 +30,15 @@
 
 你可以在 [Roo→Zoo 遷移指南](https://docs.zoocode.dev/roo-to-zoo-migration) 中找到從 Roo Code 遷移到 Zoo Code 的快速說明。我們希望在大家轉移過程中盡可能提供協助，這也是我們設立 [Reddit](https://www.reddit.com/r/ZooCode) 和 [Discord](https://discord.gg/VxfP4Vx3gX) 社群的原因。如果你遇到問題或有任何疑問，歡迎加入後直接提問。
 
-## v3.62.0 新功能
+## v3.68.0 新功能
 
-- **GLM-5.2 支援** — 最新 GLM 模型現已在提供商設定中可用
-- **OpenCode-Go 改進** — 原生模型參數、Anthropic 格式路由和 context-token 修復，提供更可靠的回應
-- **Tool-writer 模式** — 用於編寫和維護工具定義的新專用模式，現已在 Marketplace 中可用
+- **支援 GLM-5.2 的 Friendli 供應商** — 透過 Friendli 使用最新的 GLM 模型。
+- **Ollama 原生 thinking/reasoning 支援** — 使用 Ollama 模型時可端對端保留 reasoning 輸出。
+- **Anthropic 自訂 `apiModelId` 修正** — 自訂 Anthropic 模型 ID 現在會保持選取，不再靜默回退到 `claude-sonnet-4-5`。
+- 修正：Ollama 供應商的工具結果處理與過早的內容壓縮。
+- 修正：委派子任務被中斷時保留父子任務連結。
+- 改進 Anthropic Vertex 中 Claude 內容區塊的處理，以獲得更可靠的回應。
+- CI、nightly 發布以及相依套件/工具更新。
 
 ## Zoo Code 能為您做什麼？
 
