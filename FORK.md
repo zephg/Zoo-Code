@@ -22,6 +22,16 @@ across merges. `AGENTS.md` only points here.
 > (`git log --no-merges upstream/main..local/daily-driver`). Conflicts that were already resolved
 > _inside_ past merge commits are not captured. When a new area starts conflicting, add a row.
 
+> **Tag-topology gotcha (learned in the v3.68.0 sync):** our local `vX.Y.Z` release tags
+> **shadow** upstream's — ours point at our own release-prep commits (no PR-number suffix), while
+> upstream's real tags carry a `(#NNN)` suffix on the release commit. So `git describe` / tag
+> comparisons lie; the authoritative fork-point is
+> `git merge-base local/daily-driver <upstream-tag>`. Upstream's release tags are also **parallel
+> snapshots, not a linear chain** (`v3.64.0` is not an ancestor of `v3.66.0`), so **merge the single
+> target tag directly** — don't chain per-release merges. Always `git fetch upstream --tags` first so
+> the target tag resolves (local tags are never clobbered by fetch, which is why the shadowing
+> persists).
+
 ## Divergence at a glance
 
 | #   | Local feature                                                   | Origin commit(s)                     | Nature                             |
@@ -122,8 +132,10 @@ These conflict on essentially **every** upstream merge and are expected — reso
 don't investigate them as regressions.
 
 - `src/package.json` — version string → re-bump (see checklist re: VSIX)
-- `CHANGELOG.md` — take the union; keep our fork entries
-- `README.md`, `locales/*/README.md`, `webview-ui/src/i18n/locales/*/chat.json` — release/marketing churn
+- `src/core/webview/ClineProvider.ts` — the `latestAnnouncementId` string collides every release → take upstream's
+- `CHANGELOG.md` — take the union; keep our fork entries (the HEAD side is usually empty — upstream just prepends the new `## [X.Y.Z]` sections, so "take theirs" on the hunk preserves our older entries below)
+- `README.md`, `locales/*/README.md`, `webview-ui/src/i18n/locales/*/chat.json` — release/marketing churn; the conflict is the "What's New" / announcement `highlightN` block → take upstream's (in v3.68.0 our v3.62.0 highlights were superseded). Fork branding (Zoo Code, migration guide) sits _outside_ the conflict and auto-merges — do **not** `git checkout --theirs` the whole file
+- `webview-ui/src/i18n/locales/*/settings.json` usually **auto-merges** (both sides add different keys) — our `"max"` label + code-index strings and upstream's new keys coexist
 - `AGENTS.md` — now just a pointer paragraph, so the footprint is small
 
 ## Post-merge checklist
@@ -137,7 +149,22 @@ don't investigate them as regressions.
       every recent merge). A clean run = those 22 and nothing else; a 23rd is the regression to
       investigate.
 - [ ] Verify the Anthropic effort payload still emits `output_config.effort` (not `budget_tokens`)
-      for Opus 4.7/4.8 — see the provider guards above.
+      for Opus 4.7/4.8, Fable 5, and Sonnet 5 — see the provider guards above.
+- [ ] **The full build needs a networked, non-sandboxed shell:** `pnpm install` runs postinstalls
+      that download the ripgrep binary and the tree-sitter WASM grammars. If those are absent the
+      `services/tree-sitter/**` and `__tests__/dist_assets.spec.ts` suites fail on missing _assets_
+      only (not code) — a false alarm. Run `pnpm install && pnpm build && pnpm vsix --force` before
+      trusting the full `pnpm -w test` count.
+
+## Sync log / decisions
+
+- **v3.68.0** (from v3.62.0-era, merge-base `8c3ae1e8b`) — 63 upstream commits / 337 files, but the
+  real conflict surface was ~14 code files, essentially all from upstream's **Claude Sonnet 5**
+  (#778). **Decision:** adopt Sonnet 5 on the fork's **effort-shape** (not upstream's budget/binary)
+  across the Anthropic + Vertex registries and the OpenRouter + Requesty fetchers — Sonnet 5 is
+  adaptive-only and 400s on `budget_tokens`, so the budget shape would break it. Also surfaced:
+  `fetchers/requesty.ts` was an undocumented fork divergence (now mapped in Feature 2), and upstream
+  removed the `openai-error-handler` shim (#767 — all callers moved to `error-handler`, merged clean).
 
 ## Regenerate this map
 
