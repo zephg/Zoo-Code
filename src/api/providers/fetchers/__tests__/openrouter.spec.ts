@@ -471,6 +471,27 @@ describe("OpenRouter API", () => {
 			expect(result.supportsReasoningEffort).toEqual(["none", "low", "medium", "high", "xhigh"])
 		})
 
+		it("mirrors reasoning-effort capability array (incl. max) for openai/gpt-5.6-* ids", () => {
+			const mockModel = {
+				name: "GPT-5.6 Sol",
+				description: "Test model",
+				context_length: 1_050_000,
+				max_completion_tokens: 128000,
+				pricing: { prompt: "0.000005", completion: "0.00003", input_cache_read: "0.0000005" },
+			}
+
+			const result = parseOpenRouterModel({
+				id: "openai/gpt-5.6-sol",
+				model: mockModel,
+				inputModality: ["text", "image"],
+				outputModality: ["text"],
+				maxTokens: 128000,
+				supportedParameters: ["reasoning", "max_tokens", "tools"],
+			})
+
+			expect(result.supportsReasoningEffort).toEqual(["none", "low", "medium", "high", "xhigh", "max"])
+		})
+
 		it("leaves supportsReasoningEffort as boolean for openai ids not in static defs", () => {
 			const mockModel = {
 				name: "GPT-5.5 Future",

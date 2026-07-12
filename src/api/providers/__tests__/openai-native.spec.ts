@@ -284,6 +284,24 @@ describe("OpenAiNativeHandler", () => {
 			expect(modelInfo.info.reasoningEffort).toBe("medium")
 		})
 
+		it("should return GPT-5.6 Sol model info when selected", () => {
+			const solHandler = new OpenAiNativeHandler({
+				...mockOptions,
+				apiModelId: "gpt-5.6-sol",
+			})
+
+			const modelInfo = solHandler.getModel()
+			expect(modelInfo.id).toBe("gpt-5.6-sol")
+			expect(modelInfo.info.maxTokens).toBe(128000)
+			expect(modelInfo.info.contextWindow).toBe(1_050_000)
+			expect(modelInfo.info.supportsVerbosity).toBe(true)
+			expect(modelInfo.info.supportsReasoningEffort).toEqual(["none", "low", "medium", "high", "xhigh", "max"])
+			expect(modelInfo.info.reasoningEffort).toBe("high")
+			expect(modelInfo.info.inputPrice).toBe(5.0)
+			expect(modelInfo.info.outputPrice).toBe(30.0)
+			expect(modelInfo.info.cacheReadsPrice).toBe(0.5)
+		})
+
 		it("should return GPT-5.4 model info when selected", () => {
 			const gpt54Handler = new OpenAiNativeHandler({
 				...mockOptions,
@@ -356,7 +374,7 @@ describe("OpenAiNativeHandler", () => {
 				openAiNativeApiKey: "test-api-key",
 			})
 			const modelInfo = handlerWithoutModel.getModel()
-			expect(modelInfo.id).toBe("gpt-5.1-codex-max") // Default model
+			expect(modelInfo.id).toBe("gpt-5.6-sol") // Default model
 			expect(modelInfo.info).toBeDefined()
 		})
 	})
@@ -801,6 +819,46 @@ describe("OpenAiNativeHandler", () => {
 				"https://api.openai.com/v1/responses",
 				expect.objectContaining({
 					body: expect.stringContaining('"effort":"xhigh"'),
+				}),
+			)
+		})
+
+		it("should support max reasoning effort for GPT-5.6 Sol", async () => {
+			// Mock fetch for Responses API
+			const mockFetch = vitest.fn().mockResolvedValue({
+				ok: true,
+				body: new ReadableStream({
+					start(controller) {
+						controller.enqueue(
+							new TextEncoder().encode(
+								'data: {"type":"response.output_item.added","item":{"type":"text","text":"Max effort"}}\n\n',
+							),
+						)
+						controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"))
+						controller.close()
+					},
+				}),
+			})
+			global.fetch = mockFetch as any
+
+			// Mock SDK to fail
+			mockResponsesCreate.mockRejectedValue(new Error("SDK not available"))
+
+			handler = new OpenAiNativeHandler({
+				...mockOptions,
+				apiModelId: "gpt-5.6-sol",
+				reasoningEffort: "max",
+			})
+
+			const stream = handler.createMessage(systemPrompt, messages)
+			for await (const _chunk of stream) {
+				// drain
+			}
+
+			expect(mockFetch).toHaveBeenCalledWith(
+				"https://api.openai.com/v1/responses",
+				expect.objectContaining({
+					body: expect.stringContaining('"effort":"max"'),
 				}),
 			)
 		})
