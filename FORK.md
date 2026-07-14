@@ -34,13 +34,13 @@ across merges. `AGENTS.md` only points here.
 
 ## Divergence at a glance
 
-| #   | Local feature                                                   | Origin commit(s)                     | Nature                             |
-| --- | --------------------------------------------------------------- | ------------------------------------ | ---------------------------------- |
-| 1   | Effort-based Anthropic reasoning (Opus 4.6/4.7/4.8)             | `fd93c5bde`, `64fc5fc98`             | modifies shared provider logic     |
-| 2   | OpenRouter effort-array mirroring + gpt-5.5 defs                | `062657a7d`, `64fc5fc98`             | modifies shared fetcher/registry   |
-| 3   | Claude Fable 5 + safety-refusal handling                        | `811b5ca55`                          | modifies shared provider logic     |
-| 4   | `"max"` reasoningEffort i18n label                              | `dd675fd3b`                          | mechanical i18n                    |
-| 5   | Workspace-scoped code-index config (`.roo/codebase-index.json`) | `3efa0728e`→`8f54e2274` (phases 1–5) | mostly new files + isolated wiring |
+| #   | Local feature                                                                      | Origin commit(s)                      | Nature                             |
+| --- | ---------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------- |
+| 1   | Effort-based Anthropic reasoning (Opus 4.6/4.7/4.8)                                | `fd93c5bde`, `64fc5fc98`              | modifies shared provider logic     |
+| 2   | OpenRouter effort mirroring + gpt-5.5/5.6 defs (5.6 now also upstream — collision) | `062657a7d`, `64fc5fc98`, `ded80951d` | modifies shared fetcher/registry   |
+| 3   | Claude Fable 5 + safety-refusal handling                                           | `811b5ca55`                           | modifies shared provider logic     |
+| 4   | `"max"` reasoningEffort i18n label                                                 | `dd675fd3b`                           | mechanical i18n                    |
+| 5   | Workspace-scoped code-index config (`.roo/codebase-index.json`)                    | `3efa0728e`→`8f54e2274` (phases 1–5)  | mostly new files + isolated wiring |
 
 ## Conflict-prone code paths (shared files we modified)
 
@@ -88,11 +88,30 @@ for **Claude Sonnet 5** — upstream #778 shipped it budget/binary; the fork con
 
 ### Feature 2 — OpenRouter / OpenAI / Requesty effort
 
-| File                                       | Upstream churn (6mo) | Our change                                                                                                                                                                                                                                                      | Change nature           | Risk    |
-| ------------------------------------------ | -------------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------- |
-| `packages/types/src/providers/openai.ts`   |                    8 | gpt-5.5 defs + static effort arrays                                                                                                                                                                                                                             | modifies registry       | **MED** |
-| `src/api/providers/fetchers/openrouter.ts` |                    6 | Dynamic fetcher patches known IDs (`anthropic/claude-opus-4.7`, `4.8`, `claude-sonnet-5`, `claude-fable-5`, gpt-5.5 family) to mirror the static effort arrays so `xhigh`/`max` stay reachable from the UI                                                      | modifies shared fetcher | **MED** |
-| `src/api/providers/fetchers/requesty.ts`   |                  low | Same effort-array mirroring as openrouter for `anthropic/claude-fable-5` + `claude-sonnet-5` (sets `supportsReasoningBudget:false`). Upstream's Sonnet 5 (#778) patches the same block → conflict-prone. **Was missing from this map before the v3.68.0 sync.** | modifies shared fetcher | **MED** |
+| File                                       | Upstream churn (6mo) | Our change                                                                                                                                                                                                                                                                                | Change nature            | Risk    |
+| ------------------------------------------ | -------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ------- |
+| `packages/types/src/providers/openai.ts`   |                    8 | gpt-5.5 + gpt-5.6 (sol/terra/luna) defs + static effort arrays. gpt-5.6 now shared with upstream (collision): fork keeps Luna 1.05M + longContextPricing + effort defaults (high/med/low) + descriptions, adopts upstream cacheWrites + flex/priority tiers; default pinned `gpt-5.6-sol` | modifies registry        | **MED** |
+| `packages/types/src/providers/index.ts`    |                   14 | `getProviderDefaultModelId("openai-native")` returns `openAiNativeDefaultModelId` (import added) vs upstream's hardcoded `"gpt-4o"`; fork-only default fix — silent-revert risk on merge                                                                                                  | modifies shared registry | **MED** |
+| `src/api/providers/fetchers/openrouter.ts` |                    6 | Dynamic fetcher patches known IDs (`anthropic/claude-opus-4.7`, `4.8`, `claude-sonnet-5`, `claude-fable-5`, gpt-5.5 family) to mirror the static effort arrays so `xhigh`/`max` stay reachable from the UI                                                                                | modifies shared fetcher  | **MED** |
+| `src/api/providers/fetchers/requesty.ts`   |                  low | Same effort-array mirroring as openrouter for `anthropic/claude-fable-5` + `claude-sonnet-5` (sets `supportsReasoningBudget:false`). Upstream's Sonnet 5 (#778) patches the same block → conflict-prone. **Was missing from this map before the v3.68.0 sync.**                           | modifies shared fetcher  | **MED** |
+
+**Next-sync note (gpt-5.6):** upstream independently shipped `gpt-5.6-sol/terra/luna` after the fork
+did, so these entries WILL conflict on the next merge. Resolution baked in here: keep the fork's Luna
+`contextWindow: 1_050_000` + `longContextPricing` + effort defaults + descriptions; take upstream's
+`cacheWritesPrice` + flex/priority `tiers` (with every tier `contextWindow` at `1_050_000`, not
+upstream's 400K). Luna's 1.05M (fork) vs 400K (upstream) is still unverified against OpenAI's own
+docs — confirm when possible.
+
+**GPT-5.6 provider coverage (verified 2026-07-14):**
+
+- OpenAI-native + OpenRouter — supported here.
+- Amazon Bedrock — GA on Bedrock 2026-07-13, but **Responses-API-only via the `bedrock-mantle`
+  endpoint**. The fork's Bedrock provider is Converse/`bedrock-runtime`-only, so a `bedrockModels`
+  entry would 400 at request time. Real support needs a separate OpenAI-Responses-on-`bedrock-mantle`
+  transport — **deferred** (do not add `openai.gpt-5.6-*` to `bedrock.ts`).
+- Google Vertex — **not offered** by Vertex Model Garden (proprietary GPT ships to Azure Foundry +
+  Bedrock, not Google). Claude on Vertex (Opus 4.8, Fable 5, Sonnet 5) is already wired — see the
+  Feature 1+3 `vertex.ts` row.
 
 ### Feature 5 — Workspace-scoped code-index (modified shared files)
 

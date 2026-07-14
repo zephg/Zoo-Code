@@ -17,6 +17,7 @@ export const openAiNativeModels = {
 		reasoningEffort: "high",
 		inputPrice: 5.0,
 		outputPrice: 30.0,
+		cacheWritesPrice: 6.25,
 		cacheReadsPrice: 0.5,
 		longContextPricing: {
 			thresholdTokens: 272_000,
@@ -26,6 +27,10 @@ export const openAiNativeModels = {
 		},
 		supportsVerbosity: true,
 		supportsTemperature: false,
+		tiers: [
+			{ name: "flex", contextWindow: 1_050_000, inputPrice: 2.5, outputPrice: 15.0, cacheReadsPrice: 0.25 },
+			{ name: "priority", contextWindow: 1_050_000, inputPrice: 12.5, outputPrice: 75.0, cacheReadsPrice: 1.25 },
+		],
 		description:
 			"GPT-5.6 Sol: OpenAI's flagship model for frontier reasoning, complex coding, and multi-step agentic tasks",
 	},
@@ -40,6 +45,7 @@ export const openAiNativeModels = {
 		reasoningEffort: "medium",
 		inputPrice: 2.5,
 		outputPrice: 15.0,
+		cacheWritesPrice: 3.125,
 		cacheReadsPrice: 0.25,
 		longContextPricing: {
 			thresholdTokens: 272_000,
@@ -49,6 +55,10 @@ export const openAiNativeModels = {
 		},
 		supportsVerbosity: true,
 		supportsTemperature: false,
+		tiers: [
+			{ name: "flex", contextWindow: 1_050_000, inputPrice: 1.25, outputPrice: 7.5, cacheReadsPrice: 0.125 },
+			{ name: "priority", contextWindow: 1_050_000, inputPrice: 6.25, outputPrice: 37.5, cacheReadsPrice: 0.625 },
+		],
 		description: "GPT-5.6 Terra: Balanced model for everyday coding, reasoning, and agentic tasks",
 	},
 	"gpt-5.6-luna": {
@@ -62,6 +72,7 @@ export const openAiNativeModels = {
 		reasoningEffort: "low",
 		inputPrice: 1.0,
 		outputPrice: 6.0,
+		cacheWritesPrice: 1.25,
 		cacheReadsPrice: 0.1,
 		longContextPricing: {
 			thresholdTokens: 272_000,
@@ -71,6 +82,7 @@ export const openAiNativeModels = {
 		},
 		supportsVerbosity: true,
 		supportsTemperature: false,
+		tiers: [{ name: "flex", contextWindow: 1_050_000, inputPrice: 0.5, outputPrice: 3.0, cacheReadsPrice: 0.05 }],
 		description: "GPT-5.6 Luna: Fast, cost-efficient model optimized for speed and everyday use",
 	},
 	"gpt-5.1-codex-max": {

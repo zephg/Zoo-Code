@@ -299,7 +299,9 @@ describe("OpenAiNativeHandler", () => {
 			expect(modelInfo.info.reasoningEffort).toBe("high")
 			expect(modelInfo.info.inputPrice).toBe(5.0)
 			expect(modelInfo.info.outputPrice).toBe(30.0)
+			expect(modelInfo.info.cacheWritesPrice).toBe(6.25)
 			expect(modelInfo.info.cacheReadsPrice).toBe(0.5)
+			expect(modelInfo.info.tiers?.some((t) => t.name === "priority")).toBe(true)
 		})
 
 		it("should return GPT-5.4 model info when selected", () => {
