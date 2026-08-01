@@ -36,7 +36,7 @@ across merges. `AGENTS.md` only points here.
 
 | #   | Local feature                                                                      | Origin commit(s)                      | Nature                             |
 | --- | ---------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------- |
-| 1   | Effort-based Anthropic reasoning (Opus 4.6/4.7/4.8)                                | `fd93c5bde`, `64fc5fc98`              | modifies shared provider logic     |
+| 1   | Effort-based Anthropic reasoning (Opus 4.6/4.7/4.8/5, Sonnet 5)                    | `fd93c5bde`, `64fc5fc98`, `60f056b1c` | modifies shared provider logic     |
 | 2   | OpenRouter effort mirroring + gpt-5.5/5.6 defs (5.6 now also upstream — collision) | `062657a7d`, `64fc5fc98`, `ded80951d` | modifies shared fetcher/registry   |
 | 3   | Claude Fable 5 + safety-refusal handling                                           | `811b5ca55`                           | modifies shared provider logic     |
 | 4   | `"max"` reasoningEffort i18n label                                                 | `dd675fd3b`                           | mechanical i18n                    |
@@ -176,6 +176,40 @@ don't investigate them as regressions.
       trusting the full `pnpm -w test` count.
 
 ## Sync log / decisions
+
+- **v3.74.0** (from v3.68.0 line, merge-base `13c803b7d` — authoritative fork-point, not the shadow
+  tag) — 87 upstream commits / 447 files; real conflict surface was **6 code files** + release
+  mechanics (CHANGELOG / README / i18n `chat.json` / `src/package.json`). **Decisions:**
+  - **Claude Opus 5** (upstream #1010, shipped budget/binary) adopted on the fork **effort-shape** —
+    same call as Sonnet 5, same reason (adaptive-only, 400s on `budget_tokens`). Converted across the
+    Anthropic + Vertex registries and the OpenRouter + Requesty fetchers; **Bedrock unchanged** (the
+    shared `isAdaptiveThinkingModel` guard already matches `opus-5`). Default effort `high` (tunable;
+    `xhigh` is in the array) — revisit if you want `xhigh` as the flagship default.
+  - **GPT-5.6** collision resolved per the Feature 2 pre-baked recipe: kept the fork's Luna 1.05M
+    `contextWindow` + `longContextPricing` + effort defaults (sol `high`, luna `low`) + descriptions +
+    fork-only `gpt-5.5-pro`; took upstream's cacheWrites/tiers (already reconciled in `ae3547c1d`).
+    Luna 1.05M vs upstream 400K is **still unverified** against OpenAI's docs.
+  - **Canonical provider-identifier migration** (WebMad, ~15 PRs across 3.72/3.74): only
+    `packages/types/providers/index.ts` textually conflicted — re-expressed the fork's `openai-native`
+    default onto the new `providerIdentifiers.openaiNative` case label (dropped upstream's
+    `TODO(#992)` `"gpt-4o"` fallback). `modelCache.ts` / `provider-settings.ts` / `shared/api.ts`
+    auto-merged clean (the fork's lone `modelCache.ts` change was an incidental Prettier reformat,
+    byte-identical to upstream's). Canonical ids live in the new `packages/types/provider-identifiers.ts`.
+  - **New upstream exports the fork's registries now carry:** `ANTHROPIC_API_PROTOCOL`
+    (`providers/anthropic.ts`) and `OPENAI_API_PROTOCOL` (`providers/openai.ts`), both imported by
+    `provider-settings.ts`. When resolving those two conflicted files by taking the fork side, **re-add
+    the `_API_PROTOCOL` export line** or `provider-settings.ts` fails to compile.
+  - **Service-tier centralization** (#1040): a non-event for the fork — tiers moved to
+    `packages/types/model.ts` (`OpenAiServiceTier`, `serviceTierSchema`) and `applyLongContextPricing`
+    lives in `src/shared/cost.ts`, none of which the fork touches. No duplication to reconcile.
+  - **Node toolchain 20.20.2 → 22.23.1** (`engines` + `.nvmrc`, took upstream's). Local env needs
+    `fnm install 22.23.1` then `corepack prepare pnpm@10.8.1 --activate` — pnpm does **not** carry over
+    across the fnm Node switch. pnpm itself stays 10.8.1.
+  - Code-index Feature 5 files did **not** conflict — upstream's 3.72 code-index work (Dart + plaintext
+    indexing) is in `parser.ts` / `supported-extensions.ts`, disjoint from the fork's config/scope layer.
+  Verified on Node 22.23.1: `@roo-code/types` + `zoo-code` `check-types` clean; `pnpm build` green
+  (4/4 packages); the 7 affected provider spec files pass (241 tests). Baseline: reasoning/model-params
+  fixture-drift failures re-derive on Node 22 — check failure identity, not the old "22" count.
 
 - **v3.68.0** (from v3.62.0-era, merge-base `8c3ae1e8b`) — 63 upstream commits / 337 files, but the
   real conflict surface was ~14 code files, essentially all from upstream's **Claude Sonnet 5**
