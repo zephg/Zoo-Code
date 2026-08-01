@@ -1,7 +1,19 @@
 import { z } from "zod"
 
-import { modelInfoSchema, reasoningEffortSettingSchema, verbosityLevelsSchema, serviceTierSchema } from "./model.js"
+import {
+	modelInfoSchema,
+	openAiCodexServiceTierSchema,
+	reasoningEffortSettingSchema,
+	verbosityLevelsSchema,
+	serviceTierSchema,
+} from "./model.js"
 import { codebaseIndexProviderSchema } from "./codebase-index.js"
+import {
+	providerIdentifiers,
+	retiredProviderIdentifiers,
+	type ProviderIdentifier,
+	type RetiredProviderIdentifier,
+} from "./provider-identifiers.js"
 import {
 	anthropicModels,
 	basetenModels,
@@ -23,6 +35,8 @@ import {
 	minimaxModels,
 	mimoModels,
 	isOpencodeGoAnthropicFormatModel,
+	ANTHROPIC_API_PROTOCOL,
+	OPENAI_API_PROTOCOL,
 } from "./providers/index.js"
 
 /**
@@ -30,6 +44,7 @@ import {
  */
 
 export const DEFAULT_CONSECUTIVE_MISTAKE_LIMIT = 3
+export const OPEN_AI_CODEX_SERVICE_TIER_KEY = "openAiCodexServiceTier"
 
 /**
  * DynamicProvider
@@ -38,15 +53,18 @@ export const DEFAULT_CONSECUTIVE_MISTAKE_LIMIT = 3
  */
 
 export const dynamicProviders = [
-	"openrouter",
-	"vercel-ai-gateway",
-	"zoo-gateway",
-	"litellm",
-	"requesty",
-	"unbound",
-	"poe",
-	"deepseek",
-	"opencode-go",
+	providerIdentifiers.openrouter,
+	providerIdentifiers.vercelAiGateway,
+	providerIdentifiers.zooGateway,
+	providerIdentifiers.litellm,
+	providerIdentifiers.requesty,
+	providerIdentifiers.unbound,
+	providerIdentifiers.poe,
+	providerIdentifiers.deepseek,
+	providerIdentifiers.moonshot,
+	providerIdentifiers.opencodeGo,
+	providerIdentifiers.kenari,
+	providerIdentifiers.kimiCode,
 ] as const
 
 export type DynamicProvider = (typeof dynamicProviders)[number]
@@ -60,7 +78,7 @@ export const isDynamicProvider = (key: string): key is DynamicProvider =>
  * Local providers require localhost API calls in order to get the model list.
  */
 
-export const localProviders = ["ollama", "lmstudio"] as const
+export const localProviders = [providerIdentifiers.ollama, providerIdentifiers.lmstudio] as const
 
 export type LocalProvider = (typeof localProviders)[number]
 
@@ -73,7 +91,7 @@ export const isLocalProvider = (key: string): key is LocalProvider => localProvi
  * model list.
  */
 
-export const internalProviders = ["vscode-lm"] as const
+export const internalProviders = [providerIdentifiers.vscodeLm] as const
 
 export type InternalProvider = (typeof internalProviders)[number]
 
@@ -86,7 +104,7 @@ export const isInternalProvider = (key: string): key is InternalProvider =>
  * Custom providers are completely configurable within Roo Code settings.
  */
 
-export const customProviders = ["openai"] as const
+export const customProviders = [providerIdentifiers.openai] as const
 
 export type CustomProvider = (typeof customProviders)[number]
 
@@ -99,7 +117,7 @@ export const isCustomProvider = (key: string): key is CustomProvider => customPr
  * model lists.
  */
 
-export const fauxProviders = ["fake-ai"] as const
+export const fauxProviders = [providerIdentifiers.fakeAi] as const
 
 export type FauxProvider = (typeof fauxProviders)[number]
 
@@ -109,32 +127,7 @@ export const isFauxProvider = (key: string): key is FauxProvider => fauxProvider
  * ProviderName
  */
 
-export const providerNames = [
-	...dynamicProviders,
-	...localProviders,
-	...internalProviders,
-	...customProviders,
-	...fauxProviders,
-	"anthropic",
-	"bedrock",
-	"baseten",
-	"deepseek",
-	"fireworks",
-	"friendli",
-	"gemini",
-	"gemini-cli",
-	"mistral",
-	"moonshot",
-	"minimax",
-	"mimo",
-	"openai-codex",
-	"openai-native",
-	"qwen-code",
-	"sambanova",
-	"vertex",
-	"xai",
-	"zai",
-] as const
+export const providerNames = Object.values(providerIdentifiers) as [ProviderIdentifier, ...ProviderIdentifier[]]
 
 export const providerNamesSchema = z.enum(providerNames)
 
@@ -147,17 +140,10 @@ export const isProviderName = (key: unknown): key is ProviderName =>
  * RetiredProviderName
  */
 
-export const retiredProviderNames = [
-	"cerebras",
-	"chutes",
-	"deepinfra",
-	"doubao",
-	"featherless",
-	"groq",
-	"huggingface",
-	"io-intelligence",
-	"roo",
-] as const
+export const retiredProviderNames = Object.values(retiredProviderIdentifiers) as [
+	RetiredProviderIdentifier,
+	...RetiredProviderIdentifier[],
+]
 
 export const retiredProviderNamesSchema = z.enum(retiredProviderNames)
 
@@ -303,7 +289,8 @@ const geminiCliSchema = apiModelIdProviderModelSchema.extend({
 })
 
 const openAiCodexSchema = apiModelIdProviderModelSchema.extend({
-	// No additional settings needed - uses OAuth authentication
+	// Codex "Fast" mode maps to the Responses API priority service tier.
+	[OPEN_AI_CODEX_SERVICE_TIER_KEY]: openAiCodexServiceTierSchema.optional(),
 })
 
 const openAiNativeSchema = apiModelIdProviderModelSchema.extend({
@@ -334,6 +321,14 @@ const moonshotSchema = apiModelIdProviderModelSchema.extend({
 		.union([z.literal("https://api.moonshot.ai/v1"), z.literal("https://api.moonshot.cn/v1")])
 		.optional(),
 	moonshotApiKey: z.string().optional(),
+})
+
+export const kimiCodeAuthMethodSchema = z.enum(["oauth", "api-key"])
+export type KimiCodeAuthMethod = z.infer<typeof kimiCodeAuthMethodSchema>
+
+const kimiCodeSchema = apiModelIdProviderModelSchema.extend({
+	kimiCodeAuthMethod: kimiCodeAuthMethodSchema.optional(),
+	kimiCodeApiKey: z.string().optional(),
 })
 
 const minimaxSchema = apiModelIdProviderModelSchema.extend({
@@ -416,6 +411,11 @@ const opencodeGoSchema = baseProviderSettingsSchema.extend({
 	opencodeGoModelId: z.string().optional(),
 })
 
+const kenariSchema = baseProviderSettingsSchema.extend({
+	kenariApiKey: z.string().optional(),
+	kenariModelId: z.string().optional(),
+})
+
 const zooGatewaySchema = baseProviderSettingsSchema.extend({
 	zooSessionToken: z.string().optional(),
 	zooGatewayModelId: z.string().optional(),
@@ -447,6 +447,7 @@ export const providerSettingsSchemaDiscriminated = z.discriminatedUnion("apiProv
 	deepSeekSchema.merge(z.object({ apiProvider: z.literal("deepseek") })),
 	poeSchema.merge(z.object({ apiProvider: z.literal("poe") })),
 	moonshotSchema.merge(z.object({ apiProvider: z.literal("moonshot") })),
+	kimiCodeSchema.merge(z.object({ apiProvider: z.literal("kimi-code") })),
 	minimaxSchema.merge(z.object({ apiProvider: z.literal("minimax") })),
 	mimoSchema.merge(z.object({ apiProvider: z.literal("mimo") })),
 	requestySchema.merge(z.object({ apiProvider: z.literal("requesty") })),
@@ -462,6 +463,7 @@ export const providerSettingsSchemaDiscriminated = z.discriminatedUnion("apiProv
 	qwenCodeSchema.merge(z.object({ apiProvider: z.literal("qwen-code") })),
 	vercelAiGatewaySchema.merge(z.object({ apiProvider: z.literal("vercel-ai-gateway") })),
 	opencodeGoSchema.merge(z.object({ apiProvider: z.literal("opencode-go") })),
+	kenariSchema.merge(z.object({ apiProvider: z.literal("kenari") })),
 	zooGatewaySchema.merge(z.object({ apiProvider: z.literal("zoo-gateway") })),
 	defaultSchema,
 ])
@@ -484,6 +486,7 @@ export const providerSettingsSchema = z.object({
 	...deepSeekSchema.shape,
 	...poeSchema.shape,
 	...moonshotSchema.shape,
+	...kimiCodeSchema.shape,
 	...minimaxSchema.shape,
 	...mimoSchema.shape,
 	...requestySchema.shape,
@@ -499,6 +502,7 @@ export const providerSettingsSchema = z.object({
 	...qwenCodeSchema.shape,
 	...vercelAiGatewaySchema.shape,
 	...opencodeGoSchema.shape,
+	...kenariSchema.shape,
 	...zooGatewaySchema.shape,
 	...codebaseIndexProviderSchema.shape,
 })
@@ -531,6 +535,7 @@ export const modelIdKeys = [
 	"litellmModelId",
 	"vercelAiGatewayModelId",
 	"opencodeGoModelId",
+	"kenariModelId",
 	"zooGatewayModelId",
 ] as const satisfies readonly (keyof ProviderSettings)[]
 
@@ -563,6 +568,7 @@ export const modelIdKeysByProvider: Record<TypicalProvider, ModelIdKey> = {
 	"gemini-cli": "apiModelId",
 	mistral: "apiModelId",
 	moonshot: "apiModelId",
+	"kimi-code": "apiModelId",
 	minimax: "apiModelId",
 	mimo: "apiModelId",
 	deepseek: "apiModelId",
@@ -579,6 +585,7 @@ export const modelIdKeysByProvider: Record<TypicalProvider, ModelIdKey> = {
 	friendli: "apiModelId",
 	"vercel-ai-gateway": "vercelAiGatewayModelId",
 	"opencode-go": "opencodeGoModelId",
+	kenari: "kenariModelId",
 	"zoo-gateway": "zooGatewayModelId",
 }
 
@@ -587,25 +594,42 @@ export const modelIdKeysByProvider: Record<TypicalProvider, ModelIdKey> = {
  */
 
 // Providers that use Anthropic-style API protocol.
-export const ANTHROPIC_STYLE_PROVIDERS: ProviderName[] = ["anthropic", "bedrock", "minimax"]
+export const ANTHROPIC_STYLE_PROVIDERS: ProviderName[] = [
+	providerIdentifiers.anthropic,
+	providerIdentifiers.bedrock,
+	providerIdentifiers.minimax,
+]
+
+const ANTHROPIC_MODEL_GATEWAY_PROVIDERS: ProviderName[] = [
+	providerIdentifiers.vercelAiGateway,
+	providerIdentifiers.zooGateway,
+]
+
+const ANTHROPIC_MODEL_ID_PREFIX = "anthropic/"
+const CLAUDE_MODEL_ID_FRAGMENT = "claude"
 
 export const getApiProtocol = (provider: ProviderName | undefined, modelId?: string): "anthropic" | "openai" => {
 	if (provider && ANTHROPIC_STYLE_PROVIDERS.includes(provider)) {
-		return "anthropic"
+		return ANTHROPIC_API_PROTOCOL
 	}
 
-	if (provider && provider === "vertex" && modelId && modelId.toLowerCase().includes("claude")) {
-		return "anthropic"
+	if (
+		provider &&
+		provider === providerIdentifiers.vertex &&
+		modelId &&
+		modelId.toLowerCase().includes(CLAUDE_MODEL_ID_FRAGMENT)
+	) {
+		return ANTHROPIC_API_PROTOCOL
 	}
 
 	// Vercel AI Gateway and Zoo Gateway use the anthropic protocol for anthropic models.
 	if (
 		provider &&
-		["vercel-ai-gateway", "zoo-gateway"].includes(provider) &&
+		ANTHROPIC_MODEL_GATEWAY_PROVIDERS.includes(provider) &&
 		modelId &&
-		modelId.toLowerCase().startsWith("anthropic/")
+		modelId.toLowerCase().startsWith(ANTHROPIC_MODEL_ID_PREFIX)
 	) {
-		return "anthropic"
+		return ANTHROPIC_API_PROTOCOL
 	}
 
 	// Opencode Go routes a subset of its models (Qwen, MiniMax) through the
@@ -615,11 +639,16 @@ export const getApiProtocol = (provider: ProviderName | undefined, modelId?: str
 	// models must use the anthropic protocol so token/cost aggregation adds the
 	// cache tokens back into the input total — otherwise the cached prefix is
 	// dropped from `contextTokens`, undercounting context-window usage.
-	if (provider && provider === "opencode-go" && modelId && isOpencodeGoAnthropicFormatModel(modelId)) {
-		return "anthropic"
+	if (
+		provider &&
+		provider === providerIdentifiers.opencodeGo &&
+		modelId &&
+		isOpencodeGoAnthropicFormatModel(modelId)
+	) {
+		return ANTHROPIC_API_PROTOCOL
 	}
 
-	return "openai"
+	return OPENAI_API_PROTOCOL
 }
 
 /**
@@ -670,6 +699,11 @@ export const MODELS_BY_PROVIDER: Record<
 		label: "Moonshot",
 		models: Object.keys(moonshotModels),
 	},
+	"kimi-code": {
+		id: "kimi-code",
+		label: "Kimi Code",
+		models: [],
+	},
 	minimax: {
 		id: "minimax",
 		label: "MiniMax",
@@ -718,6 +752,7 @@ export const MODELS_BY_PROVIDER: Record<
 	unbound: { id: "unbound", label: "Unbound", models: [] },
 	"vercel-ai-gateway": { id: "vercel-ai-gateway", label: "Vercel AI Gateway", models: [] },
 	"opencode-go": { id: "opencode-go", label: "Opencode Go", models: [] },
+	kenari: { id: "kenari", label: "Kenari", models: [] },
 	"zoo-gateway": { id: "zoo-gateway", label: "Zoo Gateway", models: [] },
 
 	// Local providers; models discovered from localhost endpoints.

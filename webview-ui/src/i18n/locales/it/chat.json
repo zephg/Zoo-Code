@@ -17,7 +17,9 @@
 		"condenseContext": "Condensa contesto in modo intelligente",
 		"openApiHistory": "Apri cronologia API",
 		"openUiHistory": "Apri cronologia UI",
-		"backToParentTask": "Attività principale"
+		"backToParentTask": "Attività principale",
+		"waitingOnSubtask": "In attesa di sottoattività",
+		"goToSubtask": "Vai alla sottoattività"
 	},
 	"unpin": "Rilascia",
 	"pin": "Fissa",
@@ -139,7 +141,7 @@
 	"forNextMode": "per la prossima modalità",
 	"forPreviousMode": "per la modalità precedente",
 	"instructions": {
-		"wantsToFetch": "Roo vuole recuperare istruzioni dettagliate per aiutare con l'attività corrente"
+		"wantsToFetch": "Zoo vuole recuperare istruzioni dettagliate per aiutare con l'attività corrente"
 	},
 	"error": "Errore",
 	"diffError": {
@@ -195,8 +197,8 @@
 		"wantsToEditOutsideWorkspace": "Zoo vuole modificare questo file al di fuori dell'area di lavoro",
 		"wantsToEditProtected": "Zoo vuole modificare un file di configurazione protetto",
 		"wantsToCreate": "Zoo vuole creare un nuovo file",
-		"wantsToSearchReplace": "Roo vuole eseguire ricerca e sostituzione in questo file",
-		"didSearchReplace": "Roo ha eseguito ricerca e sostituzione in questo file",
+		"wantsToSearchReplace": "Zoo vuole eseguire ricerca e sostituzione in questo file",
+		"didSearchReplace": "Zoo ha eseguito ricerca e sostituzione in questo file",
 		"wantsToInsert": "Zoo vuole inserire contenuto in questo file",
 		"wantsToInsertWithLineNumber": "Zoo vuole inserire contenuto in questo file alla riga {{lineNumber}}",
 		"wantsToInsertAtEnd": "Zoo vuole aggiungere contenuto alla fine di questo file",
@@ -341,9 +343,9 @@
 		"support": "Sostieni Zoo Code lasciandoci una stella su <githubLink>GitHub</githubLink>.",
 		"release": {
 			"heading": "Novità:",
-			"highlight1": "Provider Friendli con supporto GLM-5.2 — usa il modello GLM più recente tramite Friendli.",
-			"highlight2": "Supporto nativo thinking/reasoning per Ollama — conserva l'output di ragionamento end-to-end quando usi i modelli Ollama.",
-			"highlight3": "Correzione del `apiModelId` personalizzato di Anthropic — gli ID modello Anthropic personalizzati ora restano selezionati invece di tornare silenziosamente a `claude-sonnet-4-5`."
+			"highlight1": "Più controlli OpenAI — usa la modalità di priorità Fast con OpenAI Codex e scegli un livello di reasoning più elevato per i modelli compatibili con OpenAI.",
+			"highlight2": "Provider e modelli più affidabili — gestione migliorata dei metadati del router, aggiornamento dei modelli Ollama, supporto proxy per Bedrock e controlli di reasoning per Friendli.",
+			"highlight3": "Impostazioni e workflow di sviluppo più fluidi — le impostazioni conservano le modifiche non salvate, i comandi brevi del terminale terminano correttamente, i piani di architettura usano percorsi relativi al workspace e le ultime occorrenze visibili del brand Roo sono state aggiornate a Zoo."
 		},
 		"cloudAgents": {
 			"heading": "Novità nel Cloud:",

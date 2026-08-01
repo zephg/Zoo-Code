@@ -17,7 +17,9 @@
 		"condenseContext": "Cô đọng ngữ cảnh thông minh",
 		"openApiHistory": "Mở lịch sử API",
 		"openUiHistory": "Mở lịch sử UI",
-		"backToParentTask": "Nhiệm vụ cha"
+		"backToParentTask": "Nhiệm vụ cha",
+		"waitingOnSubtask": "Đang chờ nhiệm vụ con",
+		"goToSubtask": "Đến nhiệm vụ con"
 	},
 	"unpin": "Bỏ ghim khỏi đầu",
 	"pin": "Ghim lên đầu",
@@ -185,7 +187,7 @@
 		"current": "Hiện tại"
 	},
 	"instructions": {
-		"wantsToFetch": "Roo muốn lấy hướng dẫn chi tiết để hỗ trợ nhiệm vụ hiện tại"
+		"wantsToFetch": "Zoo muốn lấy hướng dẫn chi tiết để hỗ trợ nhiệm vụ hiện tại"
 	},
 	"fileOperations": {
 		"wantsToRead": "Zoo muốn đọc tệp này",
@@ -195,8 +197,8 @@
 		"wantsToEditOutsideWorkspace": "Zoo muốn chỉnh sửa tệp này bên ngoài không gian làm việc",
 		"wantsToEditProtected": "Zoo muốn chỉnh sửa tệp cấu hình được bảo vệ",
 		"wantsToCreate": "Zoo muốn tạo một tệp mới",
-		"wantsToSearchReplace": "Roo muốn thực hiện tìm kiếm và thay thế trong tệp này",
-		"didSearchReplace": "Roo đã thực hiện tìm kiếm và thay thế trong tệp này",
+		"wantsToSearchReplace": "Zoo muốn thực hiện tìm kiếm và thay thế trong tệp này",
+		"didSearchReplace": "Zoo đã thực hiện tìm kiếm và thay thế trong tệp này",
 		"wantsToInsert": "Zoo muốn chèn nội dung vào tệp này",
 		"wantsToInsertWithLineNumber": "Zoo muốn chèn nội dung vào dòng {{lineNumber}} của tệp này",
 		"wantsToInsertAtEnd": "Zoo muốn thêm nội dung vào cuối tệp này",
@@ -342,9 +344,9 @@
 		"support": "Hãy ủng hộ Zoo Code bằng cách tặng sao cho chúng tôi trên <githubLink>GitHub</githubLink>.",
 		"release": {
 			"heading": "Có gì mới:",
-			"highlight1": "Nhà cung cấp Friendli với hỗ trợ GLM-5.2 — dùng mẫu GLM mới nhất qua Friendli.",
-			"highlight2": "Hỗ trợ thinking/reasoning gốc cho Ollama — giữ đầu ra suy luận xuyên suốt khi bạn dùng các mẫu Ollama.",
-			"highlight3": "Sửa lỗi `apiModelId` tùy chỉnh của Anthropic — ID mẫu Anthropic tùy chỉnh giờ sẽ tiếp tục được chọn thay vì âm thầm rơi về `claude-sonnet-4-5`."
+			"highlight1": "Nhiều tùy chọn điều khiển OpenAI hơn — dùng chế độ ưu tiên Fast với OpenAI Codex và chọn reasoning effort cao hơn cho các model tương thích OpenAI.",
+			"highlight2": "Provider và model đáng tin cậy hơn — cải thiện xử lý metadata của router, làm mới model Ollama, hỗ trợ proxy Bedrock và điều khiển reasoning của Friendli.",
+			"highlight3": "Cài đặt và workflow phát triển mượt mà hơn — cài đặt giữ lại các chỉnh sửa chưa lưu, lệnh terminal ngắn hoàn tất đúng cách, kế hoạch architect dùng đường dẫn tương đối với workspace và các nhãn Roo còn hiển thị cho người dùng đã được cập nhật thành Zoo."
 		},
 		"cloudAgents": {
 			"heading": "Mới trên Cloud:",

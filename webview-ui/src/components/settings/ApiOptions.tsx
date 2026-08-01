@@ -56,6 +56,7 @@ import {
 	LiteLLM,
 	Mistral,
 	Moonshot,
+	KimiCode,
 	Ollama,
 	OpenAI,
 	OpenAICompatible,
@@ -74,6 +75,7 @@ import {
 	Friendli,
 	VercelAiGateway,
 	OpenCodeGo,
+	Kenari,
 	ZooGateway,
 	MiniMax,
 	Mimo,
@@ -115,7 +117,8 @@ const ApiOptions = ({
 	setErrorMessage,
 }: ApiOptionsProps) => {
 	const { t } = useAppTranslation()
-	const { organizationAllowList, openAiCodexIsAuthenticated } = useExtensionState()
+	const { organizationAllowList, openAiCodexIsAuthenticated, kimiCodeIsAuthenticated, kimiCodeOAuthState } =
+		useExtensionState()
 
 	const [customHeaders, setCustomHeaders] = useState<[string, string][]>(() => {
 		const headers = apiConfiguration?.openAiHeaders || {}
@@ -218,7 +221,13 @@ const ApiOptions = ({
 					},
 				})
 			} else if (selectedProvider === "ollama") {
-				vscode.postMessage({ type: "requestOllamaModels" })
+				vscode.postMessage({
+					type: "requestOllamaModels",
+					values: {
+						baseUrl: apiConfiguration?.ollamaBaseUrl,
+						apiKey: apiConfiguration?.ollamaApiKey,
+					},
+				})
 			} else if (selectedProvider === "lmstudio") {
 				requestLmStudioModels(apiConfiguration?.lmStudioBaseUrl)
 			} else if (selectedProvider === "vscode-lm") {
@@ -242,6 +251,7 @@ const ApiOptions = ({
 			apiConfiguration?.openAiBaseUrl,
 			apiConfiguration?.openAiApiKey,
 			apiConfiguration?.ollamaBaseUrl,
+			apiConfiguration?.ollamaApiKey,
 			apiConfiguration?.lmStudioBaseUrl,
 			apiConfiguration?.litellmBaseUrl,
 			apiConfiguration?.litellmApiKey,
@@ -574,6 +584,15 @@ const ApiOptions = ({
 						/>
 					)}
 
+					{selectedProvider === "kimi-code" && (
+						<KimiCode
+							apiConfiguration={apiConfiguration}
+							setApiConfigurationField={setApiConfigurationField}
+							kimiCodeIsAuthenticated={kimiCodeIsAuthenticated}
+							kimiCodeOAuthState={kimiCodeOAuthState}
+						/>
+					)}
+
 					{selectedProvider === "minimax" && (
 						<MiniMax
 							apiConfiguration={apiConfiguration}
@@ -637,6 +656,17 @@ const ApiOptions = ({
 
 					{selectedProvider === "opencode-go" && (
 						<OpenCodeGo
+							apiConfiguration={apiConfiguration}
+							setApiConfigurationField={setApiConfigurationField}
+							routerModels={routerModels}
+							organizationAllowList={organizationAllowList}
+							modelValidationError={modelValidationError}
+							simplifySettings={fromWelcomeView}
+						/>
+					)}
+
+					{selectedProvider === "kenari" && (
+						<Kenari
 							apiConfiguration={apiConfiguration}
 							setApiConfigurationField={setApiConfigurationField}
 							routerModels={routerModels}

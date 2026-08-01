@@ -17,7 +17,9 @@
 		"condenseContext": "संदर्भ को बुद्धिमानी से संघनित करें",
 		"openApiHistory": "API इतिहास खोलें",
 		"openUiHistory": "UI इतिहास खोलें",
-		"backToParentTask": "मूल कार्य"
+		"backToParentTask": "मूल कार्य",
+		"waitingOnSubtask": "उपकार्य की प्रतीक्षा",
+		"goToSubtask": "उपकार्य पर जाएं"
 	},
 	"unpin": "पिन करें",
 	"pin": "अवपिन करें",
@@ -185,7 +187,7 @@
 		"current": "वर्तमान"
 	},
 	"instructions": {
-		"wantsToFetch": "Roo को वर्तमान कार्य में सहायता के लिए विस्तृत निर्देश प्राप्त करना है"
+		"wantsToFetch": "Zoo को वर्तमान कार्य में सहायता के लिए विस्तृत निर्देश प्राप्त करना है"
 	},
 	"fileOperations": {
 		"wantsToRead": "Zoo इस फ़ाइल को पढ़ना चाहता है",
@@ -195,12 +197,12 @@
 		"wantsToEditOutsideWorkspace": "Zoo कार्यक्षेत्र के बाहर इस फ़ाइल को संपादित करना चाहता है",
 		"wantsToEditProtected": "Zoo एक सुरक्षित कॉन्फ़िगरेशन फ़ाइल को संपादित करना चाहता है",
 		"wantsToCreate": "Zoo एक नई फ़ाइल बनाना चाहता है",
-		"wantsToSearchReplace": "Roo इस फ़ाइल में खोज और प्रतिस्थापन करना चाहता है",
-		"didSearchReplace": "Roo ने इस फ़ाइल में खोज और प्रतिस्थापन किया",
+		"wantsToSearchReplace": "Zoo इस फ़ाइल में खोज और प्रतिस्थापन करना चाहता है",
+		"didSearchReplace": "Zoo ने इस फ़ाइल में खोज और प्रतिस्थापन किया",
 		"wantsToInsert": "Zoo इस फ़ाइल में सामग्री डालना चाहता है",
 		"wantsToInsertWithLineNumber": "Zoo इस फ़ाइल की {{lineNumber}} लाइन पर सामग्री डालना चाहता है",
 		"wantsToInsertAtEnd": "Zoo इस फ़ाइल के अंत में सामग्री जोड़ना चाहता है",
-		"wantsToReadAndXMore": "रू इस फ़ाइल को और {{count}} अन्य को पढ़ना चाहता है",
+		"wantsToReadAndXMore": "Zoo इस फ़ाइल को और {{count}} अन्य को पढ़ना चाहता है",
 		"wantsToReadMultiple": "Zoo कई फ़ाइलें पढ़ना चाहता है",
 		"wantsToApplyBatchChanges": "Zoo कई फ़ाइलों में परिवर्तन लागू करना चाहता है",
 		"wantsToGenerateImage": "Zoo एक छवि बनाना चाहता है",
@@ -244,7 +246,7 @@
 	"response": "प्रतिक्रिया",
 	"arguments": "आर्ग्युमेंट्स",
 	"text": {
-		"rooSaid": "रू ने कहा"
+		"rooSaid": "Zoo ने कहा"
 	},
 	"feedback": {
 		"youSaid": "आपने कहा"
@@ -341,9 +343,9 @@
 		"support": "कृपया <githubLink>GitHub</githubLink> पर हमें स्टार देकर Zoo Code का समर्थन करें।",
 		"release": {
 			"heading": "नया क्या है:",
-			"highlight1": "GLM-5.2 समर्थन के साथ Friendli प्रदाता — Friendli के जरिए नवीनतम GLM मॉडल का उपयोग करें।",
-			"highlight2": "Ollama के लिए नेटिव thinking/reasoning समर्थन — Ollama मॉडल इस्तेमाल करते समय reasoning आउटपुट को शुरू से अंत तक सुरक्षित रखें।",
-			"highlight3": "Anthropic कस्टम `apiModelId` फिक्स — कस्टम Anthropic मॉडल ID अब चुपचाप `claude-sonnet-4-5` पर वापस जाने के बजाय चुनी हुई रहती हैं।"
+			"highlight1": "अधिक OpenAI controls — OpenAI Codex के साथ Fast priority mode का उपयोग करें और OpenAI-compatible models के लिए अधिक reasoning effort चुनें।",
+			"highlight2": "अधिक भरोसेमंद providers और models — router metadata handling, Ollama model refresh, Bedrock proxy support और Friendli reasoning controls में सुधार।",
+			"highlight3": "अधिक सहज settings और developer workflows — settings अब unsaved edits सुरक्षित रखती हैं, छोटे terminal commands ठीक से पूरे होते हैं, architect plans workspace-relative paths का उपयोग करते हैं और बची हुई user-facing Roo branding को Zoo में अपडेट किया गया है।"
 		},
 		"cloudAgents": {
 			"heading": "क्लाउड में नया:",

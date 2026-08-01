@@ -17,7 +17,9 @@
 		"condenseContext": "Context intelligent samenvatten",
 		"openApiHistory": "API-geschiedenis openen",
 		"openUiHistory": "UI-geschiedenis openen",
-		"backToParentTask": "Bovenliggende taak"
+		"backToParentTask": "Bovenliggende taak",
+		"waitingOnSubtask": "Wacht op subtaak",
+		"goToSubtask": "Ga naar subtaak"
 	},
 	"unpin": "Losmaken",
 	"pin": "Vastmaken",
@@ -180,7 +182,7 @@
 		"current": "Huidig"
 	},
 	"instructions": {
-		"wantsToFetch": "Roo wil gedetailleerde instructies ophalen om te helpen met de huidige taak"
+		"wantsToFetch": "Zoo wil gedetailleerde instructies ophalen om te helpen met de huidige taak"
 	},
 	"fileOperations": {
 		"wantsToRead": "Zoo wil dit bestand lezen",
@@ -190,8 +192,8 @@
 		"wantsToEditOutsideWorkspace": "Zoo wil dit bestand buiten de werkruimte bewerken",
 		"wantsToEditProtected": "Zoo wil een beveiligd configuratiebestand bewerken",
 		"wantsToCreate": "Zoo wil een nieuw bestand aanmaken",
-		"wantsToSearchReplace": "Roo wil zoeken en vervangen in dit bestand",
-		"didSearchReplace": "Roo heeft zoeken en vervangen uitgevoerd op dit bestand",
+		"wantsToSearchReplace": "Zoo wil zoeken en vervangen in dit bestand",
+		"didSearchReplace": "Zoo heeft zoeken en vervangen uitgevoerd op dit bestand",
 		"wantsToInsert": "Zoo wil inhoud invoegen in dit bestand",
 		"wantsToInsertWithLineNumber": "Zoo wil inhoud invoegen in dit bestand op regel {{lineNumber}}",
 		"wantsToInsertAtEnd": "Zoo wil inhoud toevoegen aan het einde van dit bestand",
@@ -314,9 +316,9 @@
 		"support": "Steun Zoo Code door ons een ster te geven op <githubLink>GitHub</githubLink>.",
 		"release": {
 			"heading": "Wat is nieuw:",
-			"highlight1": "Friendli-provider met GLM-5.2-ondersteuning — gebruik het nieuwste GLM-model via Friendli.",
-			"highlight2": "Native thinking/reasoning-ondersteuning voor Ollama — behoud reasoning-uitvoer van begin tot eind wanneer je Ollama-modellen gebruikt.",
-			"highlight3": "Fix voor aangepaste Anthropic-`apiModelId` — aangepaste Anthropic-model-ID's blijven nu geselecteerd in plaats van stilletjes terug te vallen op `claude-sonnet-4-5`."
+			"highlight1": "Meer OpenAI-bediening — gebruik de Fast-prioriteitsmodus met OpenAI Codex en kies een hogere reasoning effort voor OpenAI-compatibele modellen.",
+			"highlight2": "Betrouwbaardere providers en modellen — verbeterde verwerking van routermetadata, Ollama-modelverversing, Bedrock-proxyondersteuning en Friendli-reasoningbediening.",
+			"highlight3": "Soepelere instellingen en ontwikkelworkflows — instellingen bewaren niet-opgeslagen wijzigingen, korte terminalopdrachten worden correct voltooid, architectuurplannen gebruiken werkruimterelatieve paden en de resterende zichtbare Roo-branding is bijgewerkt naar Zoo."
 		},
 		"cloudAgents": {
 			"heading": "Nieuw in de Cloud:",

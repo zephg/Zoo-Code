@@ -5,6 +5,7 @@ import type { ModelInfo } from "../model.js"
 
 export type AnthropicModelId = keyof typeof anthropicModels
 export const anthropicDefaultModelId: AnthropicModelId = "claude-sonnet-4-5"
+export const ANTHROPIC_API_PROTOCOL = "anthropic"
 
 export const anthropicModels = {
 	"claude-fable-5": {
@@ -183,6 +184,30 @@ export const anthropicModels = {
 		reasoningEffort: "high",
 		supportsTemperature: false,
 		supportsReasoningDisplay: true,
+	},
+	"claude-opus-5": {
+		maxTokens: 128_000,
+		// Native 1M-token context window; flat pricing.
+		// Source: https://platform.claude.com/docs/en/about-claude/models/overview
+		contextWindow: 1_000_000,
+		supportsImages: true,
+		supportsPromptCache: true,
+		inputPrice: 5.0,
+		outputPrice: 25.0,
+		cacheWritesPrice: 6.25,
+		cacheReadsPrice: 0.5,
+		// Opus 5 is adaptive-thinking only, like Opus 4.7/4.8 and Sonnet 5 on the direct
+		// Anthropic provider path: manual extended thinking (budget_tokens) returns a 400,
+		// and sampling parameters (temperature/top_p/top_k) return a 400. Fork convention:
+		// drive it through the effort path (thinking:{type:"adaptive"} + output_config.effort);
+		// declaring supportsReasoningBudget would route it to the legacy budget branch in
+		// getAnthropicReasoning and 400. Mirrors Opus 4.7/4.8/Fable 5/Sonnet 5.
+		supportsReasoningEffort: ["low", "medium", "high", "xhigh", "max"],
+		requiredReasoningEffort: true,
+		reasoningEffort: "high",
+		supportsTemperature: false,
+		supportsReasoningDisplay: true,
+		description: "Claude Opus 5 is Anthropic's most capable model for complex agentic coding and enterprise work.",
 	},
 	"claude-opus-4-5-20251101": {
 		maxTokens: 32_000, // Overridden to 8k if `enableReasoningEffort` is false.
