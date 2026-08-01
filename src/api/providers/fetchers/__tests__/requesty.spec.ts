@@ -101,8 +101,10 @@ describe("getRequestyModels", () => {
 		const opus5 = models["anthropic/claude-opus-5"]
 
 		expect(opus5).toBeDefined()
-		expect(opus5.supportsReasoningBudget).toBe(true)
-		expect(opus5.supportsReasoningBinary).toBe(true)
+		// Fork shapes Opus 5 as effort/adaptive (mirrors the sonnet-5 override), not budget/binary.
+		expect(opus5.supportsReasoningEffort).toEqual(["low", "medium", "high", "xhigh", "max"])
+		expect(opus5.requiredReasoningEffort).toBe(true)
+		expect(opus5.supportsReasoningBudget).toBe(false)
 		expect(opus5.supportsTemperature).toBe(false)
 	})
 

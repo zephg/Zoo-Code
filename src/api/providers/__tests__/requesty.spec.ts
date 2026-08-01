@@ -91,8 +91,12 @@ vitest.mock("../fetchers/modelCache", () => ({
 				contextWindow: 1000000,
 				supportsImages: true,
 				supportsPromptCache: true,
-				supportsReasoningBudget: true,
-				supportsReasoningBinary: true,
+				// Local fork: Opus 5 uses the effort/adaptive shape (not budget/binary), mirroring
+				// the requesty fetcher's claude-opus-5 patch.
+				supportsReasoningEffort: ["low", "medium", "high", "xhigh", "max"],
+				requiredReasoningEffort: true,
+				reasoningEffort: "high",
+				supportsReasoningDisplay: true,
 				supportsTemperature: false,
 				inputPrice: 5,
 				outputPrice: 25,
@@ -351,11 +355,13 @@ describe("RequestyHandler", () => {
 			const generator = handler.createMessage("test system prompt", [{ role: "user" as const, content: "test" }])
 			await generator.next()
 
+			// Opus 5 uses the effort/adaptive envelope (like Sonnet 5); effort-shape ignores
+			// modelMaxTokens, so max_tokens stays at the model ceiling (128k), not 32768.
 			expect(mockCreate).toHaveBeenCalledWith(
 				expect.objectContaining({
 					model: "anthropic/claude-opus-5",
-					max_tokens: 32768,
-					thinking: { type: "adaptive" },
+					max_tokens: 128000,
+					thinking: { thinking: { type: "adaptive" }, output_config: { effort: "high" } },
 					temperature: undefined,
 				}),
 			)
@@ -660,9 +666,11 @@ describe("RequestyHandler", () => {
 
 			await handler.completePrompt("test prompt")
 
+			// Effort-shape Opus 5: max_tokens is the model ceiling (128k), not the budget-path
+			// default of 8192. completePrompt sends no reasoning fields.
 			expect(mockCreate).toHaveBeenCalledWith({
 				model: "anthropic/claude-opus-5",
-				max_tokens: 8192,
+				max_tokens: 128000,
 				messages: [{ role: "system", content: "test prompt" }],
 				temperature: undefined,
 			})

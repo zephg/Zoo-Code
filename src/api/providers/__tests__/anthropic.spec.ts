@@ -527,9 +527,12 @@ describe("AnthropicHandler", () => {
 
 			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
 			const requestOptions = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[1]
+			// Opus 5 uses effort-based adaptive thinking (default "high"), not budget/binary.
+			// Effort-shape models ignore modelMaxTokens, so max_tokens stays at the model's ceiling (128k).
 			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect((requestBody as any)?.output_config).toEqual({ effort: "high" })
 			expect(requestBody?.temperature).toBeUndefined()
-			expect(requestBody?.max_tokens).toBe(32768)
+			expect(requestBody?.max_tokens).toBe(128000)
 			expect(requestOptions?.headers?.["anthropic-beta"]).toContain("prompt-caching-2024-07-31")
 		})
 
@@ -755,12 +758,16 @@ describe("AnthropicHandler", () => {
 			expect(model.id).toBe("claude-opus-5")
 			expect(model.info.maxTokens).toBe(128000)
 			expect(model.info.contextWindow).toBe(1000000)
-			expect(model.maxTokens).toBe(8192)
-			expect(model.info.supportsReasoningBinary).toBe(true)
-			expect(model.info.supportsReasoningBudget).toBe(true)
+			// Local fork shapes Opus 5 as effort/adaptive (Sonnet-5 precedent), not upstream's budget/binary.
+			expect(model.info.supportsReasoningEffort).toEqual(["low", "medium", "high", "xhigh", "max"])
+			expect(model.info.requiredReasoningEffort).toBe(true)
+			expect(model.info.supportsReasoningBudget).toBeUndefined()
+			expect(model.info.supportsReasoningBinary).toBeUndefined()
 			expect(model.info.supportsPromptCache).toBe(true)
 			expect(model.info.supportsTemperature).toBe(false)
 			expect(model.reasoningBudget).toBeUndefined()
+			expect(model.reasoningEffort).toBe("high")
+			expect(model.maxTokens).toBe(128000)
 		})
 
 		it("should enable 1M context for Claude 4.5 Sonnet when beta flag is set", () => {

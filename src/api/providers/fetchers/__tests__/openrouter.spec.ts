@@ -402,8 +402,10 @@ describe("OpenRouter API", () => {
 			expect(result.maxTokens).toBe(128000)
 			expect(result.contextWindow).toBe(1000000)
 			expect(result.supportsTemperature).toBe(false)
-			expect(result.supportsReasoningBudget).toBe(true)
-			expect(result.supportsReasoningBinary).toBe(true)
+			// Fork shapes Opus 5 as effort/adaptive (mirrors opus/fable/sonnet), not budget/binary.
+			expect(result.supportsReasoningEffort).toEqual(["low", "medium", "high", "xhigh", "max"])
+			expect(result.requiredReasoningEffort).toBe(true)
+			expect(result.supportsReasoningBudget).toBe(false)
 		})
 
 		it("sets horizon-alpha model to 32k max tokens", () => {

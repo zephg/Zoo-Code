@@ -1103,8 +1103,12 @@ describe("VertexHandler", () => {
 			expect(model.id).toBe("claude-opus-5")
 			expect(model.info.maxTokens).toBe(8192)
 			expect(model.info.contextWindow).toBe(1_000_000)
-			expect(model.info.supportsReasoningBinary).toBe(true)
-			expect(model.info.supportsReasoningBudget).toBe(true)
+			// Fork shapes Opus 5 as effort/adaptive on Vertex (mirrors Opus 4.8 / Sonnet 5 —
+			// the registry shape drives the payload, Vertex has no provider-side guard), not budget/binary.
+			expect(model.info.supportsReasoningEffort).toEqual(["low", "medium", "high", "xhigh", "max"])
+			expect(model.info.requiredReasoningEffort).toBe(true)
+			expect(model.info.supportsReasoningBudget).toBeUndefined()
+			expect(model.info.supportsReasoningBinary).toBeUndefined()
 			expect(model.info.supportsPromptCache).toBe(true)
 			expect(model.info.supportsTemperature).toBe(false)
 		})
