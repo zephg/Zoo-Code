@@ -21,7 +21,7 @@ import { getModelParams } from "../transform/model-params"
 
 import { DEFAULT_HEADERS } from "./constants"
 import { BaseProvider } from "./base-provider"
-import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
+import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata, CompletePromptOptions } from "../index"
 import { handleOpenAIError } from "./utils/error-handler"
 import { extractReasoningFromDelta } from "./utils/extract-reasoning"
 
@@ -296,7 +296,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 		return { id, info, ...params }
 	}
 
-	async completePrompt(prompt: string): Promise<string> {
+	async completePrompt(prompt: string, options?: CompletePromptOptions): Promise<string> {
 		try {
 			const isAzureAiInference = this._isAzureAiInference(this.options.openAiBaseUrl)
 			const model = this.getModel()
@@ -323,7 +323,13 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 			return response.choices?.[0]?.message.content || ""
 		} catch (error) {
 			if (error instanceof Error) {
-				throw new Error(`${this.providerName} completion error: ${error.message}`)
+				const wrapped = new Error(`${this.providerName} completion error: ${error.message}`, { cause: error })
+				const source = error as Error & { status?: number; errorDetails?: unknown; code?: unknown }
+				const target = wrapped as Error & { status?: number; errorDetails?: unknown; code?: unknown }
+				if (source.status !== undefined) target.status = source.status
+				if (source.errorDetails !== undefined) target.errorDetails = source.errorDetails
+				if (source.code !== undefined) target.code = source.code
+				throw wrapped
 			}
 
 			throw error

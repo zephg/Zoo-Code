@@ -16,13 +16,18 @@
 
         ## Chúng tôi là Zoo Code
 
-> Có thể bạn đã thấy [thông báo gần đây](https://x.com/mattrubens/status/2046636598859559114) từ đội ngũ Roo 🦘🦘🦘. Tóm lại, đội ngũ đang dần giảm việc phát triển Roo Code một cách tích cực để tập trung vào [Roomote](https://roomote.dev/). Tin này thật khó chấp nhận với nhiều người dùng Roo; plugin này có ý nghĩa rất lớn với cộng đồng này.
+> Zoo Code tiếp tục phát triển dự án này sau khi đội ngũ Roo dừng việc phát
+> triển tích cực Roo Code để tập trung vào [Roomote](https://roomote.dev/).
+> Cảm ơn đội ngũ Roo vì tất cả những gì họ đã xây dựng.
 >
-> Chúng tôi muốn cảm ơn toàn bộ đội ngũ Roo vì công sức họ đã dành cho plugin này. Chúng tôi sẽ không nêu tên từng người ở đây, nhưng tất cả chúng ta đều có thể đồng ý rằng họ là những nhà phát triển xuất sắc và, quan trọng không kém, là những con người tuyệt vời. Cảm ơn đội ngũ Roo.
->
-> Người dùng Roo đến từ đủ mọi kiểu khác nhau. Có người dùng nó chuyên nghiệp trong công việc hằng ngày, có người dùng nó để nghĩ ra những workflow phức tạp đến khó tin. Có người dùng nó để cải thiện chính Roo, trong khi người khác dùng nó để cải thiện những model mà Roo đang sử dụng (siêu meta). Điều chúng tôi muốn nói là cộng đồng rất đa dạng, và dù một chú kangaroo 🦘🦘🦘 là một loài vật cao quý và nổi bật, chúng tôi cảm thấy một "Zoo" 🐘🦡🦒🦓🦛🦧🦭🦦 với nhiều loài khác nhau phản ánh sự đa dạng đó tốt hơn.
->
-> Vì vậy, chúng tôi muốn thông báo rằng **Zoo Code** sẽ tiếp tục phát triển dự án quan trọng này. Đội ngũ nòng cốt gồm những nhà phát triển từng đóng góp cho Roo trước đây và thực sự quan tâm đến plugin này. Chúng tôi sẽ tiếp tục cập nhật model, sửa lỗi và phát hành tính năng. Nhưng trên hết, chúng tôi muốn lắng nghe bạn, cộng đồng đã làm cho plugin này trở nên đặc biệt. Vì vậy, hãy tham gia [Discord](https://discord.gg/VxfP4Vx3gX), [Reddit](https://www.reddit.com/r/ZooCode) của chúng tôi, hoặc [tạo PR hay issue](https://github.com/Zoo-Code-Org/Zoo-Code); nhưng hơn hết, chúng tôi mong bạn tiếp tục gắn bó, kết nối và năng động cùng cộng đồng.
+> Đội ngũ nòng cốt gồm những nhà phát triển từng đóng góp cho Roo trước đây
+> và thực sự quan tâm đến plugin này. Chúng tôi sẽ tiếp tục cập nhật model,
+> sửa lỗi và phát hành tính năng, và chúng tôi dự định lắng nghe sát sao
+> cộng đồng đã làm cho plugin này trở nên đặc biệt. Hãy tham gia cùng chúng
+> tôi trên
+> [Discord](https://discord.gg/VxfP4Vx3gX),
+> [Reddit](https://www.reddit.com/r/ZooCode), hoặc
+> [mở PR hay issue](https://github.com/Zoo-Code-Org/Zoo-Code).
 >
 > _-Zoo Code Team_
 
@@ -30,15 +35,28 @@
 
 Bạn có thể xem hướng dẫn nhanh để chuyển từ Roo Code sang Zoo Code trong [hướng dẫn chuyển đổi Roo→Zoo](https://docs.zoocode.dev/roo-to-zoo-migration). Chúng tôi muốn hỗ trợ người dùng nhiều nhất có thể trong quá trình chuyển đổi, và đó chính là lý do chúng tôi có [Reddit](https://www.reddit.com/r/ZooCode) và [Discord](https://discord.gg/VxfP4Vx3gX). Nếu bạn gặp vấn đề hoặc có câu hỏi, cứ vào hỏi nhé.
 
-## Điểm mới trong v3.68.0
+## Điểm mới trong v3.74.0
 
-- **Nhà cung cấp Friendli với hỗ trợ GLM-5.2** — dùng mẫu GLM mới nhất qua Friendli.
-- **Hỗ trợ thinking/reasoning gốc cho Ollama** — giữ đầu ra suy luận xuyên suốt khi bạn dùng các mẫu Ollama.
-- **Sửa lỗi `apiModelId` tùy chỉnh của Anthropic** — ID mẫu Anthropic tùy chỉnh giờ sẽ tiếp tục được chọn thay vì âm thầm rơi về `claude-sonnet-4-5`.
-- Sửa lỗi: xử lý kết quả công cụ của nhà cung cấp Ollama và cô đọng ngữ cảnh quá sớm.
-- Sửa lỗi: giữ liên kết cha-con của tác vụ khi một tác vụ con được ủy quyền bị gián đoạn.
-- Cải thiện xử lý khối nội dung Claude trên Anthropic Vertex để có phản hồi đáng tin cậy hơn.
-- Cập nhật CI, phát hành nightly và phụ thuộc/công cụ.
+**Zoo Gateway đã ra mắt!**
+
+Gateway là một điểm cuối duy nhất cho tất cả các nhà cung cấp, với một số dư và bảng phân tích chi tiêu/mức sử dụng theo từng yêu cầu.
+
+**Thiết lập:**
+
+- Thêm tín dụng: https://www.zoocode.dev/dashboard/credits
+- Đăng nhập từ tiện ích mở rộng.
+- Trong phần cài đặt, chọn Zoo Gateway làm nhà cung cấp khi tạo hồ sơ cho các mô hình khác nhau
+
+Bạn có thể xem mức sử dụng và phí trong [bảng điều khiển](https://www.zoocode.dev/dashboard).
+
+Mô hình: https://www.zoocode.dev/dashboard/models
+
+- **Nhiều tùy chọn điều khiển OpenAI hơn** — dùng chế độ ưu tiên Fast với OpenAI Codex và chọn reasoning effort cao hơn cho các model tương thích OpenAI.
+- **Provider và model đáng tin cậy hơn** — cải thiện xử lý metadata của router, làm mới model Ollama, hỗ trợ proxy Bedrock và điều khiển reasoning của Friendli.
+- **Cài đặt và workflow phát triển mượt mà hơn** — cài đặt giữ lại các chỉnh sửa chưa lưu, lệnh terminal ngắn hoàn tất đúng cách, kế hoạch architect dùng đường dẫn tương đối với workspace và các nhãn Roo còn hiển thị cho người dùng đã được cập nhật thành Zoo.
+- **Nền tảng tác vụ vững chắc hơn** — task registry mới và scheduler dựa trên semaphore chuẩn bị cho Zoo Code phối hợp tác vụ an toàn hơn.
+- **Kiến trúc provider nhất quán** — identifier của provider và các thành phần service tier giờ được tập trung trong API, core, shared types và webview.
+- Cải tiến bảo mật, phụ thuộc, lint, hồi quy hình ảnh và kiểm thử end-to-end.
 
 ## Zoo Code có thể làm gì cho BẠN?
 

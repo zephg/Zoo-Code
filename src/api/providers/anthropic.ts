@@ -22,7 +22,7 @@ import { getAnthropicProviderReasoning } from "../transform/reasoning"
 import { handleProviderError } from "./utils/error-handler"
 
 import { BaseProvider } from "./base-provider"
-import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
+import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata, CompletePromptOptions } from "../index"
 import { calculateApiCostAnthropic } from "../../shared/cost"
 import {
 	convertOpenAIToolsToAnthropic,
@@ -104,6 +104,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 			case "claude-opus-4-6":
 			case "claude-opus-4-7":
 			case "claude-opus-4-8":
+			case "claude-opus-5":
 			case "claude-opus-4-5-20251101":
 			case "claude-opus-4-1-20250805":
 			case "claude-opus-4-20250514":
@@ -176,6 +177,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 								case "claude-opus-4-6":
 								case "claude-opus-4-7":
 								case "claude-opus-4-8":
+								case "claude-opus-5":
 								case "claude-opus-4-5-20251101":
 								case "claude-opus-4-1-20250805":
 								case "claude-opus-4-20250514":
@@ -457,7 +459,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 		}
 	}
 
-	async completePrompt(prompt: string) {
+	async completePrompt(prompt: string, options?: CompletePromptOptions) {
 		const { id: model, temperature } = this.getModel()
 
 		let message

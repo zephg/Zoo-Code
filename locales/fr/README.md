@@ -16,13 +16,19 @@
 
         ## Nous sommes Zoo Code
 
-> Tu as peut-être vu la [récente annonce](https://x.com/mattrubens/status/2046636598859559114) de l'équipe Roo 🦘🦘🦘. En résumé, l'équipe réduit progressivement le développement actif de Roo Code pendant qu'elle se concentre sur [Roomote](https://roomote.dev/). La nouvelle a été difficile pour beaucoup d'utilisateurs de Roo ; cette extension compte énormément pour cette communauté.
+> Zoo Code poursuit le développement de ce projet après que l'équipe Roo a
+> arrêté le développement actif de Roo Code pour se concentrer sur
+> [Roomote](https://roomote.dev/). Merci à l'équipe Roo pour tout ce qu'elle
+> a construit.
 >
-> Nous voulons remercier toute l'équipe Roo pour le travail qu'elle a consacré à cette extension. Nous n'allons pas citer chaque personne ici, mais on peut tous s'accorder à dire que ce sont des développeurs exceptionnels et, tout aussi important, des personnes incroyables. Merci à l'équipe Roo.
->
-> Les utilisateurs de Roo viennent d'horizons très différents. Certains l'utilisent au quotidien dans un cadre professionnel, d'autres s'en servent pour imaginer des workflows incroyablement complexes. Certains l'utilisent pour améliorer Roo lui-même, tandis que d'autres l'utilisent pour améliorer les modèles mêmes que Roo exploite (super méta). En bref, la communauté est diverse, et même si un kangourou 🦘🦘🦘 est un animal noble et distingué, nous avons trouvé qu'un « Zoo » 🐘🦡🦒🦓🦛🦧🦭🦦 reflétait mieux cette diversité des utilisateurs de l'extension.
->
-> Nous voulons donc annoncer que **Zoo Code** poursuivra le développement de cet important projet. L'équipe principale est composée de développeurs qui ont déjà contribué à Roo et qui tiennent profondément à cette extension. Nous continuerons à mettre à jour les modèles, corriger les bugs et livrer de nouvelles fonctionnalités. Mais surtout, nous voulons vous écouter, vous, la communauté, qui avez rendu cette extension si spéciale. N'hésite donc pas à rejoindre notre [Discord](https://discord.gg/VxfP4Vx3gX), notre [Reddit](https://www.reddit.com/r/ZooCode), ou à [ouvrir une PR ou une issue](https://github.com/Zoo-Code-Org/Zoo-Code) ; plus que tout, nous te demandons de rester impliqué, connecté et actif au sein de la communauté.
+> L'équipe principale est composée de développeurs qui ont déjà contribué à
+> Roo et qui tiennent profondément à cette extension. Nous continuerons à
+> mettre à jour les modèles, corriger les bugs et livrer de nouvelles
+> fonctionnalités, et nous comptons bien écouter attentivement la communauté
+> qui a rendu cette extension si spéciale. Rejoins-nous sur
+> [Discord](https://discord.gg/VxfP4Vx3gX),
+> [Reddit](https://www.reddit.com/r/ZooCode), ou
+> [ouvre une PR ou une issue](https://github.com/Zoo-Code-Org/Zoo-Code).
 >
 > _-Zoo Code Team_
 
@@ -30,15 +36,28 @@
 
 Tu peux trouver un guide rapide pour passer de Roo Code à Zoo Code dans le [guide de migration Roo→Zoo](https://docs.zoocode.dev/roo-to-zoo-migration). On veut aider au maximum pendant la transition, et notre [Reddit](https://www.reddit.com/r/ZooCode) et notre [Discord](https://discord.gg/VxfP4Vx3gX) sont là pour ça. Si tu rencontres un problème ou si tu as une question, viens demander.
 
-## Nouveautés de la v3.68.0
+## Nouveautés de la v3.74.0
 
-- **Provider Friendli avec prise en charge de GLM-5.2** — utilise le dernier modèle GLM via Friendli.
-- **Prise en charge native du thinking/reasoning pour Ollama** — préserve la sortie de raisonnement de bout en bout quand tu utilises des modèles Ollama.
-- **Correction du `apiModelId` personnalisé d'Anthropic** — les identifiants de modèle Anthropic personnalisés restent désormais sélectionnés au lieu de revenir silencieusement à `claude-sonnet-4-5`.
-- Correctif : gestion des résultats d'outils du fournisseur Ollama et condensation prématurée du contexte.
-- Correctif : préserve le lien parent-enfant de la tâche lorsqu'une sous-tâche déléguée est interrompue.
-- Améliore la gestion des blocs de contenu Claude dans Anthropic Vertex pour des réponses plus fiables.
-- Mises à jour de la CI, de la publication nightly et des dépendances/outils.
+**Zoo Gateway est en ligne !**
+
+Le gateway est un point d'accès unique pour tous les providers, avec un seul solde et un détail des dépenses et de l'utilisation par requête.
+
+**Configuration :**
+
+- Ajoute des crédits : https://www.zoocode.dev/dashboard/credits
+- Connecte-toi depuis l'extension.
+- Dans les paramètres, sélectionne Zoo Gateway comme provider lors de la création de profils pour différents modèles
+
+L'utilisation et les frais sont visibles dans le [tableau de bord](https://www.zoocode.dev/dashboard).
+
+Modèles : https://www.zoocode.dev/dashboard/models
+
+- **Plus de contrôles OpenAI** — utilise le mode de priorité Fast avec OpenAI Codex et choisis un effort de raisonnement supérieur pour les modèles compatibles OpenAI.
+- **Providers et modèles plus fiables** — meilleure gestion des métadonnées du router, actualisation des modèles Ollama, prise en charge des proxys Bedrock et contrôles de raisonnement Friendli.
+- **Paramètres et workflows de développement plus fluides** — les paramètres conservent les modifications non enregistrées, les commandes courtes du terminal se terminent correctement, les plans d'architecture utilisent des chemins relatifs à l'espace de travail et les dernières mentions visibles de Roo sont remplacées par Zoo.
+- **Fondations de tâches renforcées** — le nouveau registre de tâches et le scheduler basé sur des sémaphores préparent Zoo Code à une coordination plus sûre des tâches.
+- **Architecture de providers cohérente** — les identifiants de provider et les composants de niveau de service sont désormais centralisés dans l'API, le cœur, les types partagés et la webview.
+- Améliorations de la sécurité, des dépendances, du lint, de la régression visuelle et des tests de bout en bout.
 
 ## Que peut faire Zoo Code pour VOUS ?
 

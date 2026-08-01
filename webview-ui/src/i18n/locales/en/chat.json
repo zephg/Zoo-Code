@@ -17,7 +17,9 @@
 		"delete": "Delete Task (Shift + Click to skip confirmation)",
 		"openApiHistory": "Open API History",
 		"openUiHistory": "Open UI History",
-		"backToParentTask": "Parent task"
+		"backToParentTask": "Parent task",
+		"waitingOnSubtask": "Waiting on subtask",
+		"goToSubtask": "Go to subtask"
 	},
 	"unpin": "Unpin",
 	"pin": "Pin",
@@ -360,9 +362,9 @@
 		"support": "Please support Zoo Code by starring us on <githubLink>GitHub</githubLink>.",
 		"release": {
 			"heading": "What's New:",
-			"highlight1": "Friendli provider with GLM-5.2 support — use the latest GLM model through Friendli.",
-			"highlight2": "Native Ollama thinking/reasoning support — preserve reasoning output end-to-end when you use Ollama models.",
-			"highlight3": "Anthropic custom `apiModelId` fix — custom Anthropic model IDs now stay selected instead of silently falling back to `claude-sonnet-4-5`."
+			"highlight1": "More OpenAI controls — use Fast priority mode with OpenAI Codex and choose higher reasoning effort for OpenAI-compatible models.",
+			"highlight2": "More reliable providers and models — improved router metadata handling, Ollama model refresh, Bedrock proxy support, and Friendli reasoning controls.",
+			"highlight3": "Smoother settings and developer workflows — settings now preserve unsaved edits, short terminal commands complete cleanly, architect plans use workspace-relative paths, and remaining user-facing Roo branding is updated to Zoo."
 		},
 		"cloudAgents": {
 			"heading": "New in the Cloud:",

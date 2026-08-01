@@ -300,6 +300,7 @@ export const SECRET_STATE_KEYS = [
 	"openAiNativeApiKey",
 	"deepSeekApiKey",
 	"moonshotApiKey",
+	"kimiCodeApiKey",
 	"mistralApiKey",
 	"minimaxApiKey",
 	"requestyApiKey",
@@ -319,6 +320,7 @@ export const SECRET_STATE_KEYS = [
 	"friendliApiKey",
 	"vercelAiGatewayApiKey",
 	"opencodeGoApiKey",
+	"kenariApiKey",
 	"basetenApiKey",
 ] as const
 

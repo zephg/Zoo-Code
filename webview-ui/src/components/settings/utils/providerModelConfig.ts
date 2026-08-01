@@ -4,6 +4,7 @@ import {
 	bedrockDefaultModelId,
 	deepSeekDefaultModelId,
 	moonshotDefaultModelId,
+	kimiCodeDefaultModelId,
 	geminiDefaultModelId,
 	mistralDefaultModelId,
 	openRouterDefaultModelId,
@@ -26,6 +27,7 @@ import {
 	litellmDefaultModelId,
 	vercelAiGatewayDefaultModelId,
 	opencodeGoDefaultModelId,
+	kenariDefaultModelId,
 	zooGatewayDefaultModelId,
 } from "@roo-code/types"
 
@@ -41,6 +43,7 @@ export const PROVIDER_SERVICE_CONFIG: Partial<Record<ProviderName, ProviderServi
 	bedrock: { serviceName: "Amazon Bedrock", serviceUrl: "https://aws.amazon.com/bedrock" },
 	deepseek: { serviceName: "DeepSeek", serviceUrl: "https://platform.deepseek.com" },
 	moonshot: { serviceName: "Moonshot", serviceUrl: "https://platform.moonshot.cn" },
+	"kimi-code": { serviceName: "Kimi Code", serviceUrl: "https://www.kimi.com/code" },
 	gemini: { serviceName: "Google Gemini", serviceUrl: "https://ai.google.dev" },
 	mistral: { serviceName: "Mistral", serviceUrl: "https://console.mistral.ai" },
 	"openai-native": { serviceName: "OpenAI", serviceUrl: "https://platform.openai.com" },
@@ -67,6 +70,7 @@ export const PROVIDER_DEFAULT_MODEL_IDS: Partial<Record<ProviderName, string>> =
 	bedrock: bedrockDefaultModelId,
 	deepseek: deepSeekDefaultModelId,
 	moonshot: moonshotDefaultModelId,
+	"kimi-code": kimiCodeDefaultModelId,
 	gemini: geminiDefaultModelId,
 	mistral: mistralDefaultModelId,
 	"openai-native": openAiNativeDefaultModelId,
@@ -116,6 +120,7 @@ const PROVIDER_MODEL_CONFIG: Partial<Record<ProviderName, ProviderModelConfig>> 
 	gemini: { field: "apiModelId", default: geminiDefaultModelId },
 	deepseek: { field: "apiModelId", default: deepSeekDefaultModelId },
 	moonshot: { field: "apiModelId", default: moonshotDefaultModelId },
+	"kimi-code": { field: "apiModelId", default: kimiCodeDefaultModelId },
 	minimax: { field: "apiModelId", default: minimaxDefaultModelId },
 	mimo: { field: "apiModelId", default: mimoDefaultModelId },
 	mistral: { field: "apiModelId", default: mistralDefaultModelId },
@@ -130,6 +135,7 @@ const PROVIDER_MODEL_CONFIG: Partial<Record<ProviderName, ProviderModelConfig>> 
 	poe: { field: "apiModelId", default: poeDefaultModelId },
 	"vercel-ai-gateway": { field: "vercelAiGatewayModelId", default: vercelAiGatewayDefaultModelId },
 	"opencode-go": { field: "opencodeGoModelId", default: opencodeGoDefaultModelId },
+	kenari: { field: "kenariModelId", default: kenariDefaultModelId },
 	"zoo-gateway": { field: "zooGatewayModelId", default: zooGatewayDefaultModelId },
 	openai: { field: "openAiModelId" },
 	ollama: { field: "ollamaModelId" },
@@ -199,11 +205,13 @@ export const PROVIDERS_WITH_CUSTOM_MODEL_UI: ProviderName[] = [
 	"unbound",
 	"openai", // OpenAI Compatible
 	"openai-codex", // OpenAI Codex has custom UI with auth and rate limits
+	"kimi-code",
 	"litellm",
 	"vercel-ai-gateway",
 	"ollama",
 	"lmstudio",
 	"vscode-lm",
+	"moonshot", // Moonshot has custom ModelPicker inside Moonshot.tsx
 ]
 
 /**

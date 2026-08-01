@@ -506,6 +506,36 @@ describe("AnthropicHandler", () => {
 			expect(requestOptions?.headers?.["anthropic-beta"]).toContain("prompt-caching-2024-07-31")
 		})
 
+		it("should use adaptive thinking for Claude Opus 5 when reasoning is enabled", async () => {
+			const opusHandler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-opus-5",
+				enableReasoningEffort: true,
+				modelMaxTokens: 32768,
+			})
+
+			const stream = opusHandler.createMessage(systemPrompt, [
+				{
+					role: "user",
+					content: [{ type: "text" as const, text: "Hello" }],
+				},
+			])
+
+			for await (const _chunk of stream) {
+				// Consume stream
+			}
+
+			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
+			const requestOptions = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[1]
+			// Opus 5 uses effort-based adaptive thinking (default "high"), not budget/binary.
+			// Effort-shape models ignore modelMaxTokens, so max_tokens stays at the model's ceiling (128k).
+			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect((requestBody as any)?.output_config).toEqual({ effort: "high" })
+			expect(requestBody?.temperature).toBeUndefined()
+			expect(requestBody?.max_tokens).toBe(128000)
+			expect(requestOptions?.headers?.["anthropic-beta"]).toContain("prompt-caching-2024-07-31")
+		})
+
 		it("should send the custom model ID as-is and use adaptive thinking for a custom Sonnet-5-family model", async () => {
 			const customHandler = new AnthropicHandler({
 				apiKey: "test-api-key",
@@ -708,6 +738,27 @@ describe("AnthropicHandler", () => {
 			expect(model.info.maxTokens).toBe(128000)
 			expect(model.info.contextWindow).toBe(1000000)
 			// Local fork uses the effort/adaptive shape for Sonnet 5, not upstream's budget/binary.
+			expect(model.info.supportsReasoningEffort).toEqual(["low", "medium", "high", "xhigh", "max"])
+			expect(model.info.requiredReasoningEffort).toBe(true)
+			expect(model.info.supportsReasoningBudget).toBeUndefined()
+			expect(model.info.supportsReasoningBinary).toBeUndefined()
+			expect(model.info.supportsPromptCache).toBe(true)
+			expect(model.info.supportsTemperature).toBe(false)
+			expect(model.reasoningBudget).toBeUndefined()
+			expect(model.reasoningEffort).toBe("high")
+			expect(model.maxTokens).toBe(128000)
+		})
+
+		it("should handle Claude Opus 5 model correctly", () => {
+			const handler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-opus-5",
+			})
+			const model = handler.getModel()
+			expect(model.id).toBe("claude-opus-5")
+			expect(model.info.maxTokens).toBe(128000)
+			expect(model.info.contextWindow).toBe(1000000)
+			// Local fork shapes Opus 5 as effort/adaptive (Sonnet-5 precedent), not upstream's budget/binary.
 			expect(model.info.supportsReasoningEffort).toEqual(["low", "medium", "high", "xhigh", "max"])
 			expect(model.info.requiredReasoningEffort).toBe(true)
 			expect(model.info.supportsReasoningBudget).toBeUndefined()

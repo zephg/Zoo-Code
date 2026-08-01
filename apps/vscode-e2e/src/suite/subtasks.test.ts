@@ -5,7 +5,21 @@ import { RooCodeEventName, type ClineMessage } from "@roo-code/types"
 import { setDefaultSuiteTimeout } from "./test-utils"
 import { sleep, waitFor, waitUntilCompleted } from "./utils"
 import {
+	SCHED_COMPLETED_PROMPT,
+	SCHED_COMPLETED_RESULT,
+	SCHED_STANDALONE_FOLLOWUP_ANSWER,
+	SCHED_STANDALONE_PROMPT,
+	SUBTASK_ABANDON_CHILD_FOLLOWUP_ANSWER,
+	SUBTASK_ABANDON_PARENT_PROMPT,
+	SUBTASK_API_HANG_CHILD_MARKER,
+	SUBTASK_API_HANG_CHILD_RESULT,
+	SUBTASK_API_HANG_PARENT_MARKER,
+	SUBTASK_API_HANG_PARENT_PROMPT,
+	SUBTASK_API_HANG_PARENT_RESULT,
+	SUBTASK_API_HANG_RESPONSE_LATENCY_MS,
+	SUBTASK_API_HANG_RESUME_MESSAGE,
 	SUBTASK_CHILD_FOLLOWUP_ANSWER,
+	SUBTASK_FAST_CHILD_RESULT,
 	SUBTASK_FAST_PARENT_PROMPT,
 	SUBTASK_INTERRUPT_CHILD_FOLLOWUP_ANSWER,
 	SUBTASK_INTERRUPT_PARENT_PROMPT,
@@ -16,6 +30,89 @@ import {
 	SUBTASK_XPROFILE_PARENT_RESULT,
 	SUBTASK_XPROFILE_SAME_CHILD_RESULT,
 } from "../fixtures/subtasks"
+
+type AimockMessageContent = string | Array<{ type?: string; text?: string }>
+
+type AimockJournalEntry = {
+	timestamp?: number
+	body?: {
+		messages?: Array<{
+			role?: string
+			content?: AimockMessageContent
+		}>
+	}
+}
+
+const messageContentText = (content?: AimockMessageContent) => {
+	if (typeof content === "string") {
+		return content
+	}
+
+	return content?.map((part) => part.text ?? "").join("") ?? ""
+}
+
+const fetchAimockJournal = async () => {
+	const aimockUrl = process.env.AIMOCK_URL
+	assert.ok(aimockUrl, "AIMOCK_URL must be set for aimock journal assertions")
+
+	const response = await fetch(`${aimockUrl}/__aimock/journal`)
+	return (await response.json()) as AimockJournalEntry[]
+}
+
+const findAimockRequest = (entries: AimockJournalEntry[], expectedText: string, excludeText?: string) =>
+	entries.find((entry) => {
+		const messages = entry.body?.messages
+		if (!messages) return false
+		const entryText = messages.map((m) => messageContentText(m.content)).join("")
+		if (excludeText && entryText.includes(excludeText)) return false
+		return messages.some(
+			(message) => message.role === "user" && messageContentText(message.content).includes(expectedText),
+		)
+	})
+
+// Waits for a matching request to appear in the aimock journal and returns its journal
+// timestamp, so callers can anchor post-test drains to the exact request this test created.
+const waitForAimockRequestContaining = async (
+	expectedText: string,
+	excludeText?: string,
+): Promise<number | undefined> => {
+	let matchedAt: number | undefined
+
+	await waitFor(async () => {
+		matchedAt = findAimockRequest(await fetchAimockJournal(), expectedText, excludeText)?.timestamp
+		return matchedAt !== undefined
+	})
+
+	return matchedAt
+}
+
+// Grace period after the delayed window for aimock to flush the stream's remaining chunks to
+// the dead socket. 500ms is an empirical margin for that flush plus socket teardown; if this
+// suite becomes flaky again on slow CI runners, widen this value first.
+const SUBTASK_API_HANG_DRAIN_GRACE_MS = 500
+
+// aimock does not observe client disconnects: after the API-hang child request is cancelled,
+// the mock keeps the delayed stream pending server-side until the fixture's ttft has fully
+// elapsed, then flushes the remaining chunks to the dead socket. A streamed request opened by
+// the next test can interleave with that late flush, so wait out the remainder of the delayed
+// window before the next test runs. The deadline is anchored to the journal timestamp of the
+// request this test created (never earlier traffic), and bounded by one latency window plus
+// grace, so it cannot hide a genuine hang.
+const waitForDelayedSubtaskStreamDrain = async (delayedRequestStartedAt: number | undefined) => {
+	if (delayedRequestStartedAt === undefined) {
+		// The delayed request never reached the mock (the test failed before cancelling
+		// an in-flight request), so there is no delayed stream to drain.
+		return
+	}
+
+	const drainDeadlineMs =
+		delayedRequestStartedAt + SUBTASK_API_HANG_RESPONSE_LATENCY_MS + SUBTASK_API_HANG_DRAIN_GRACE_MS
+	const remainingMs = drainDeadlineMs - Date.now()
+
+	if (remainingMs > 0) {
+		await sleep(remainingMs)
+	}
+}
 
 suite("Roo Code Subtasks", function () {
 	setDefaultSuiteTimeout(this)
@@ -54,7 +151,8 @@ suite("Roo Code Subtasks", function () {
 					([taskId, messages]) =>
 						taskId !== parentTaskId &&
 						messages.some(
-							({ say, text }) => say === "completion_result" && text?.trim() === "Fast child completed",
+							({ say, text }) =>
+								say === "completion_result" && text?.trim() === SUBTASK_FAST_CHILD_RESULT,
 						),
 				),
 				"Immediately-completing child should emit its expected result",
@@ -226,7 +324,10 @@ suite("Roo Code Subtasks", function () {
 
 			const parent = await api.getTaskHistoryItem(parentTaskId)
 			assert.ok(parent, "Parent history item should exist")
-			assert.strictEqual(parent.status, "active", "Parent status should be 'active' after child completes")
+			assert.ok(
+				parent.status === "active" || parent.status === "completed",
+				`Parent status should be 'active' or 'completed' after child completes (got '${parent.status}')`,
+			)
 			assert.strictEqual(parent.awaitingChildId, undefined, "Parent awaitingChildId should be cleared")
 			assert.strictEqual(parent.delegatedToId, undefined, "Parent delegatedToId should be cleared")
 			assert.strictEqual(parent.completedByChildId, childTaskId, "Parent completedByChildId should be the child")
@@ -241,10 +342,17 @@ suite("Roo Code Subtasks", function () {
 		} finally {
 			api.off(RooCodeEventName.Message, messageHandler)
 			api.off(RooCodeEventName.TaskDelegationCompleted, delegationCompletedHandler)
-			if (api.getCurrentTaskStack().length > 0) {
-				await api.clearCurrentTask()
+			// TaskDelegationCompleted fires before createTaskWithHistoryItem completes,
+			// so the reopened parent may not be on the stack yet. Wait for it to appear
+			// before draining, otherwise the next test sees a late-rehydrated stray task.
+			if (delegationCompletedParentId) {
+				await waitFor(
+					() =>
+						api.getCurrentTaskStack().length > 0 ||
+						api.getCurrentTaskStack().includes(delegationCompletedParentId!),
+				).catch(() => {})
 			}
-			if (api.getCurrentTaskStack().length > 0) {
+			while (api.getCurrentTaskStack().length > 0) {
 				await api.clearCurrentTask()
 			}
 			await waitFor(() => api.getCurrentTaskStack().length === 0).catch(() => {})
@@ -300,15 +408,23 @@ suite("Roo Code Subtasks", function () {
 
 			await api.cancelCurrentTask()
 
+			// Gate on the async settle before asserting the parent never resumed: a spurious
+			// resume would be an async downstream effect of the cancellation, so a synchronous
+			// check right after cancelCurrentTask() proves nothing.
+			await waitFor(() => api.getCurrentTaskStack().at(-1) === spawnedTaskId)
+			await waitFor(
+				() => asks[spawnedTaskId!]?.some(({ type, ask }) => type === "ask" && ask === "resume_task") ?? false,
+			)
+
 			assert.ok(
 				messages[parentTaskId]?.find(({ type, text }) => type === "say" && text === "Parent task resumed") ===
 					undefined,
 				"Parent task should not have resumed after subtask cancellation",
 			)
-
-			await waitFor(() => api.getCurrentTaskStack().at(-1) === spawnedTaskId)
-			await waitFor(
-				() => asks[spawnedTaskId!]?.some(({ type, ask }) => type === "ask" && ask === "resume_task") ?? false,
+			assert.strictEqual(
+				messages[parentTaskId]?.find(({ say }) => say === "completion_result"),
+				undefined,
+				"Parent must not have completed after subtask cancellation",
 			)
 
 			await api.clearCurrentTask()
@@ -402,6 +518,120 @@ suite("Roo Code Subtasks", function () {
 			)
 		} finally {
 			api.off(RooCodeEventName.Message, messageHandler)
+		}
+	})
+
+	// Issue #566: a child interrupted while its provider request is still pending
+	// must keep its parent link when manually resumed and completed.
+	test("API-hung interrupted child resumes and returns to parent", async () => {
+		const api = globalThis.api
+		const asks: Record<string, ClineMessage[]> = {}
+		const says: Record<string, ClineMessage[]> = {}
+		let delayedChildRequestStartedAt: number | undefined
+
+		const messageHandler = ({ taskId, message }: { taskId: string; message: ClineMessage }) => {
+			if (message.type === "ask") {
+				asks[taskId] = asks[taskId] || []
+				asks[taskId].push(message)
+			}
+			if (message.type === "say" && message.partial === false) {
+				says[taskId] = says[taskId] || []
+				says[taskId].push(message)
+			}
+		}
+
+		api.on(RooCodeEventName.Message, messageHandler)
+
+		try {
+			const parentTaskId = await api.startNewTask({
+				configuration: {
+					mode: "ask",
+					alwaysAllowModeSwitch: true,
+					alwaysAllowSubtasks: true,
+					autoApprovalEnabled: true,
+					enableCheckpoints: false,
+				},
+				text: SUBTASK_API_HANG_PARENT_PROMPT,
+			})
+
+			let childTaskId: string | undefined
+			await waitFor(() => {
+				const stack = api.getCurrentTaskStack()
+				const current = stack[stack.length - 1]
+				if (current && current !== parentTaskId) {
+					childTaskId = current
+					return true
+				}
+				return false
+			})
+
+			delayedChildRequestStartedAt = await waitForAimockRequestContaining(
+				SUBTASK_API_HANG_CHILD_MARKER,
+				SUBTASK_API_HANG_PARENT_MARKER,
+			)
+
+			await api.cancelCurrentTask()
+
+			await waitFor(() => api.getCurrentTaskStack().at(-1) === childTaskId)
+			await waitFor(
+				() => asks[childTaskId!]?.some(({ type, ask }) => type === "ask" && ask === "resume_task") ?? false,
+			)
+
+			const interruptedChild = await api.getTaskHistoryItem(childTaskId!)
+			assert.strictEqual(interruptedChild?.status, "interrupted", "Child should be interrupted after manual stop")
+			assert.strictEqual(
+				interruptedChild?.parentTaskId,
+				parentTaskId,
+				"Interrupted child should retain its parent link before resume",
+			)
+
+			const completedParentTaskId = await waitUntilCompleted({
+				api,
+				start: async () => {
+					await api.sendMessage(SUBTASK_API_HANG_RESUME_MESSAGE)
+					return parentTaskId
+				},
+			})
+
+			assert.strictEqual(
+				completedParentTaskId,
+				parentTaskId,
+				"Parent task should complete after API-hung child resumes and reports back",
+			)
+			assert.strictEqual(
+				says[childTaskId!]
+					?.filter(({ say }) => say === "completion_result")
+					.map(({ text }) => text?.trim())
+					.find((text): text is string => !!text),
+				SUBTASK_API_HANG_CHILD_RESULT,
+				"Child should complete with its expected result after resume",
+			)
+			assert.strictEqual(
+				says[parentTaskId]
+					?.filter(({ say }) => say === "completion_result")
+					.map(({ text }) => text?.trim())
+					.find((text): text is string => !!text),
+				SUBTASK_API_HANG_PARENT_RESULT,
+				"Parent should resume and complete with its expected result",
+			)
+
+			const parent = await api.getTaskHistoryItem(parentTaskId)
+			assert.notStrictEqual(parent?.status, "delegated", "Parent history should not remain delegated")
+			assert.strictEqual(parent?.awaitingChildId, undefined, "Parent awaitingChildId should be cleared")
+			assert.strictEqual(parent?.completedByChildId, childTaskId, "Parent should record completed child")
+
+			const child = await api.getTaskHistoryItem(childTaskId!)
+			assert.strictEqual(child?.status, "completed", "Child history should be completed")
+			assert.strictEqual(child?.parentTaskId, parentTaskId, "Completed child should still point to parent")
+		} finally {
+			api.off(RooCodeEventName.Message, messageHandler)
+			while (api.getCurrentTaskStack().length > 0) {
+				await api.clearCurrentTask()
+			}
+			await waitFor(() => api.getCurrentTaskStack().length === 0).catch(() => {})
+			// Drain the cancelled delayed stream before the next test can open another
+			// streamed request against the mock.
+			await waitForDelayedSubtaskStreamDrain(delayedChildRequestStartedAt)
 		}
 	})
 
@@ -608,6 +838,302 @@ suite("Roo Code Subtasks", function () {
 				await api.clearCurrentTask()
 			}
 			await waitFor(() => api.getCurrentTaskStack().length === 0).catch(() => {})
+		}
+	})
+
+	// Issue #559: explicit "Abandon subtask" action. Unlike cancellation alone (which leaves
+	// the child "interrupted" and the parent "delegated" so the child can still resume and
+	// report back), abandoning severs the link outright: the parent goes back to "active" and
+	// the child's parentTaskId/rootTaskId are cleared so a later resume can never reattach it.
+	test("abandoning an interrupted subtask severs the parent-child link", async () => {
+		const api = globalThis.api
+		const asks: Record<string, ClineMessage[]> = {}
+		const says: Record<string, ClineMessage[]> = {}
+
+		const messageHandler = ({ taskId, message }: { taskId: string; message: ClineMessage }) => {
+			if (message.type === "ask") {
+				asks[taskId] = asks[taskId] || []
+				asks[taskId].push(message)
+			}
+			if (message.type === "say" && message.partial === false) {
+				says[taskId] = says[taskId] || []
+				says[taskId].push(message)
+			}
+		}
+
+		api.on(RooCodeEventName.Message, messageHandler)
+
+		try {
+			const parentTaskId = await api.startNewTask({
+				configuration: {
+					mode: "ask",
+					alwaysAllowModeSwitch: true,
+					alwaysAllowSubtasks: true,
+					autoApprovalEnabled: true,
+					enableCheckpoints: false,
+				},
+				text: SUBTASK_ABANDON_PARENT_PROMPT,
+			})
+
+			let childTaskId: string | undefined
+			await waitFor(() => {
+				const stack = api.getCurrentTaskStack()
+				const current = stack[stack.length - 1]
+				if (current && current !== parentTaskId) {
+					childTaskId = current
+					return true
+				}
+				return false
+			})
+
+			await waitFor(() => asks[childTaskId!]?.some(({ ask }) => ask === "followup") ?? false)
+			await waitFor(async () => (await api.getTaskApiConversationHistoryLength(childTaskId!)) > 0)
+
+			// Cancel the child — marked "interrupted", parent stays "delegated".
+			await api.cancelCurrentTask()
+
+			await waitFor(() => api.getCurrentTaskStack().at(-1) === childTaskId)
+			await waitFor(
+				() => asks[childTaskId!]?.some(({ type, ask }) => type === "ask" && ask === "resume_task") ?? false,
+			)
+
+			const interruptedChild = await api.getTaskHistoryItem(childTaskId!)
+			assert.strictEqual(interruptedChild?.status, "interrupted", "Child should be marked interrupted")
+
+			const delegatedParent = await api.getTaskHistoryItem(parentTaskId)
+			assert.strictEqual(delegatedParent?.status, "delegated", "Parent should still be delegated before abandon")
+			assert.strictEqual(
+				delegatedParent?.awaitingChildId,
+				childTaskId,
+				"Parent should await the interrupted child",
+			)
+
+			// The interrupted child is the live/open task at this point (cancelTask rehydrates
+			// it onto the stack). Abandon must close that live instance before severing the
+			// persisted link — otherwise a later save on the still-open child would rebuild
+			// parentTaskId/rootTaskId from its live (readonly) fields and silently reattach it.
+			const abandoned = await api.abandonSubtask(childTaskId!)
+			assert.strictEqual(abandoned, true, "abandonSubtask should report the link was severed")
+
+			await waitFor(() => api.getCurrentTaskStack().at(-1) !== childTaskId)
+
+			const parentAfterAbandon = await api.getTaskHistoryItem(parentTaskId)
+			assert.strictEqual(parentAfterAbandon?.status, "active", "Parent should return to active after abandon")
+			assert.strictEqual(
+				parentAfterAbandon?.awaitingChildId,
+				undefined,
+				"Parent awaitingChildId should be cleared",
+			)
+			assert.strictEqual(parentAfterAbandon?.delegatedToId, undefined, "Parent delegatedToId should be cleared")
+
+			const childAfterAbandon = await api.getTaskHistoryItem(childTaskId!)
+			// The child's own status is left untouched (VALID_TRANSITIONS only allows interrupted → completed);
+			// only its parent/root links are cleared so it can never reattach to the parent again.
+			assert.strictEqual(childAfterAbandon?.status, "interrupted", "Child status stays interrupted")
+			assert.strictEqual(childAfterAbandon?.parentTaskId, undefined, "Child parentTaskId should be cleared")
+			assert.strictEqual(childAfterAbandon?.rootTaskId, undefined, "Child rootTaskId should be cleared")
+
+			// A second abandon call is a no-op since the parent is no longer delegated to this child.
+			const secondAbandon = await api.abandonSubtask(childTaskId!)
+			assert.strictEqual(secondAbandon, false, "Second abandonSubtask call should be a no-op")
+
+			// Resume and complete the abandoned child — it must NOT reopen or reattach to the
+			// parent. Before the abandon fix, a subsequent save on the still-live child could
+			// silently rewrite its persisted parentTaskId back to the parent; this proves the
+			// link stays severed all the way through a real resume/save/complete cycle.
+			// api.resumeTask() re-instantiates the child from history, which re-raises its own
+			// "resume_task" ask; answering it with the follow-up answer (same pattern the sibling
+			// "cancelled child completes and reopens parent" test above uses) both resumes the
+			// task and supplies the answer the re-asked follow-up question is waiting for.
+			// asks[childTaskId] already holds the earlier resume_task ask from the pre-abandon
+			// cancellation, so the wait below must look for a NEW one, not just any occurrence.
+			const askCountBeforeResume = asks[childTaskId!]?.length ?? 0
+			await api.resumeTask(childTaskId!)
+			await waitFor(() =>
+				(asks[childTaskId!] ?? [])
+					.slice(askCountBeforeResume)
+					.some(({ type, ask }) => type === "ask" && ask === "resume_task"),
+			)
+
+			const completedChildTaskId = await waitUntilCompleted({
+				api,
+				start: async () => {
+					await api.sendMessage(SUBTASK_ABANDON_CHILD_FOLLOWUP_ANSWER)
+					return childTaskId!
+				},
+			})
+
+			assert.strictEqual(
+				completedChildTaskId,
+				childTaskId,
+				"The abandoned child itself should be the task that completes, not the parent",
+			)
+			assert.strictEqual(
+				says[parentTaskId]?.find(({ say }) => say === "completion_result"),
+				undefined,
+				"Parent must never complete/reopen after its abandoned child resumes and completes",
+			)
+
+			const parentAfterChildCompletes = await api.getTaskHistoryItem(parentTaskId)
+			assert.strictEqual(
+				parentAfterChildCompletes?.status,
+				"active",
+				"Parent status must remain untouched by the abandoned child's completion",
+			)
+			assert.strictEqual(
+				parentAfterChildCompletes?.awaitingChildId,
+				undefined,
+				"Parent must not start awaiting the abandoned child again",
+			)
+
+			const childAfterCompletion = await api.getTaskHistoryItem(childTaskId!)
+			assert.strictEqual(
+				childAfterCompletion?.parentTaskId,
+				undefined,
+				"Child parentTaskId must still be cleared after it completes on its own — " +
+					"proves the live-instance save did not resurrect the old link",
+			)
+		} finally {
+			api.off(RooCodeEventName.Message, messageHandler)
+			while (api.getCurrentTaskStack().length > 0) {
+				await api.clearCurrentTask()
+			}
+			await waitFor(() => api.getCurrentTaskStack().length === 0).catch(() => {})
+		}
+	})
+
+	// TaskScheduler regression: resumeTask on a completed task must show resume_completed_task ask.
+	// Before the CodeRabbit fix, createTaskWithHistoryItem bypassed the scheduler and called
+	// Task.run() via the constructor's startTask: true default, causing run() to call startTask()
+	// (clearing history) instead of resumeTaskFromHistory().
+	test("resumeTask on a completed task presents resume_completed_task ask", async () => {
+		const api = globalThis.api
+		const asks: Record<string, ClineMessage[]> = {}
+		const says: Record<string, ClineMessage[]> = {}
+
+		const messageHandler = ({ taskId, message }: { taskId: string; message: ClineMessage }) => {
+			if (message.type === "ask") {
+				asks[taskId] = asks[taskId] || []
+				asks[taskId].push(message)
+			}
+			if (message.type === "say" && message.partial === false) {
+				says[taskId] = says[taskId] || []
+				says[taskId].push(message)
+			}
+		}
+
+		api.on(RooCodeEventName.Message, messageHandler)
+
+		try {
+			// Run a task to completion.
+			const taskId = await waitUntilCompleted({
+				api,
+				start: () =>
+					api.startNewTask({
+						configuration: {
+							mode: "ask",
+							autoApprovalEnabled: true,
+							enableCheckpoints: false,
+						},
+						text: SCHED_COMPLETED_PROMPT,
+					}),
+			})
+
+			assert.strictEqual(
+				says[taskId]?.find(({ say }) => say === "completion_result")?.text?.trim(),
+				SCHED_COMPLETED_RESULT,
+				"Task should complete with expected result",
+			)
+
+			// Re-open it via resumeTask — should hit resumeTaskFromHistory(), showing resume_completed_task.
+			await api.resumeTask(taskId)
+
+			await waitFor(
+				() => asks[taskId]?.some(({ type, ask }) => type === "ask" && ask === "resume_completed_task") ?? false,
+			)
+		} finally {
+			api.off(RooCodeEventName.Message, messageHandler)
+			while (api.getCurrentTaskStack().length > 0) {
+				await api.clearCurrentTask()
+			}
+			await sleep(500)
+		}
+	})
+
+	// TaskScheduler regression: resumeTask on an interrupted standalone task must show resume_task
+	// ask and allow the task to complete normally via the scheduler slot.
+	test("resumeTask on an interrupted standalone task presents resume_task ask and completes", async () => {
+		const api = globalThis.api
+		const asks: Record<string, ClineMessage[]> = {}
+		const says: Record<string, ClineMessage[]> = {}
+
+		const messageHandler = ({ taskId, message }: { taskId: string; message: ClineMessage }) => {
+			if (message.type === "ask") {
+				asks[taskId] = asks[taskId] || []
+				asks[taskId].push(message)
+			}
+			if (message.type === "say" && message.partial === false) {
+				says[taskId] = says[taskId] || []
+				says[taskId].push(message)
+			}
+		}
+
+		api.on(RooCodeEventName.Message, messageHandler)
+
+		let taskId: string | undefined
+
+		try {
+			taskId = await api.startNewTask({
+				configuration: {
+					mode: "ask",
+					autoApprovalEnabled: true,
+					enableCheckpoints: false,
+				},
+				text: SCHED_STANDALONE_PROMPT,
+			})
+
+			// Wait until the task pauses at the follow-up question.
+			await waitFor(() => asks[taskId!]?.some(({ type, ask }) => type === "ask" && ask === "followup") ?? false)
+
+			// Cancel it — the task becomes interrupted.
+			await api.cancelCurrentTask()
+
+			await waitFor(
+				() => asks[taskId!]?.some(({ type, ask }) => type === "ask" && ask === "resume_task") ?? false,
+			)
+
+			// Resume via scheduler path (createTaskWithHistoryItem).
+			const askCountBeforeResume = asks[taskId!]?.length ?? 0
+			await api.resumeTask(taskId!)
+
+			await waitFor(() =>
+				(asks[taskId!] ?? [])
+					.slice(askCountBeforeResume)
+					.some(({ type, ask }) => type === "ask" && ask === "resume_task"),
+			)
+
+			// Sending the answer both acknowledges the resume_task ask and answers the pending
+			// follow-up question from the original task, completing the task.
+			const completedTaskId = await waitUntilCompleted({
+				api,
+				start: async () => {
+					await api.sendMessage(SCHED_STANDALONE_FOLLOWUP_ANSWER)
+					return taskId!
+				},
+			})
+
+			assert.strictEqual(completedTaskId, taskId, "The resumed standalone task should complete")
+			assert.strictEqual(
+				says[taskId!]?.find(({ say }) => say === "completion_result")?.text?.trim(),
+				SCHED_STANDALONE_FOLLOWUP_ANSWER,
+				"Task should complete with the follow-up answer as result",
+			)
+		} finally {
+			api.off(RooCodeEventName.Message, messageHandler)
+			while (api.getCurrentTaskStack().length > 0) {
+				await api.clearCurrentTask()
+			}
+			await sleep(500)
 		}
 	})
 })

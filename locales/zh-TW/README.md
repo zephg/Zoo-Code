@@ -16,13 +16,15 @@
 
         ## 我們是 Zoo Code
 
-> 你可能已經看到 Roo 團隊 🦘🦘🦘 的[最近公告](https://x.com/mattrubens/status/2046636598859559114)。簡單來說，團隊在把重心放到 [Roomote](https://roomote.dev/) 的同時，正在逐步減少 Roo Code 的活躍開發。這個消息讓很多 Roo 使用者都很難受；這個外掛對這個社群意義重大。
+> 在 Roo 團隊停止 Roo Code 的積極開發、轉而專注於 [Roomote](https://roomote.dev/)
+> 之後，Zoo Code 將繼續開發這個專案。感謝 Roo 團隊所建立的一切。
 >
-> 我們想感謝整個 Roo 團隊為這個外掛投入的努力。這裡不會逐一點名，但大家都能認同，他們既是卓越的開發者，也是同樣令人敬佩的優秀的人。感謝 Roo 團隊。
->
-> Roo 使用者來自各種不同背景。有人在日常工作中專業使用它，也有人用它來構思難以想像的複雜 workflow。有人用它來改進 Roo 本身，也有人用它來改進 Roo 所使用的模型（超級 meta）。我們想表達的是，這個社群非常多元。雖然袋鼠 🦘🦘🦘 是高貴又有代表性的動物，但我們覺得由不同物種組成的「Zoo」🐘🦡🦒🦓🦛🦧🦭🦦 更能反映這個外掛使用者的多樣性。
->
-> 因此我們想宣布，**Zoo Code** 將繼續開發這個重要專案。核心團隊由先前曾為 Roo 做出貢獻、並且非常在乎這個外掛的開發者所組成。我們會持續更新模型、修正 bug，並推出新功能。但最重要的是，我們想傾聽你們——讓這個外掛如此特別的社群。歡迎加入我們的 [Discord](https://discord.gg/VxfP4Vx3gX)、[Reddit](https://www.reddit.com/r/ZooCode)，或是[建立 PR 或 issue](https://github.com/Zoo-Code-Org/Zoo-Code)；但更重要的是，我們希望你能繼續作為社群的一分子，保持參與、保持連結、保持活躍。
+> 核心團隊由先前曾為 Roo 做出貢獻、並且非常在乎這個外掛的開發者所組成。
+> 我們會持續更新模型、修正 bug，並推出新功能，也計劃仔細傾聽讓這個外掛
+> 如此特別的社群。歡迎加入我們，一起在
+> [Discord](https://discord.gg/VxfP4Vx3gX)、
+> [Reddit](https://www.reddit.com/r/ZooCode)，或是
+> [建立 PR 或 issue](https://github.com/Zoo-Code-Org/Zoo-Code)。
 >
 > _-Zoo Code Team_
 
@@ -30,15 +32,28 @@
 
 你可以在 [Roo→Zoo 遷移指南](https://docs.zoocode.dev/roo-to-zoo-migration) 中找到從 Roo Code 遷移到 Zoo Code 的快速說明。我們希望在大家轉移過程中盡可能提供協助，這也是我們設立 [Reddit](https://www.reddit.com/r/ZooCode) 和 [Discord](https://discord.gg/VxfP4Vx3gX) 社群的原因。如果你遇到問題或有任何疑問，歡迎加入後直接提問。
 
-## v3.68.0 新功能
+## v3.74.0 新功能
 
-- **支援 GLM-5.2 的 Friendli 供應商** — 透過 Friendli 使用最新的 GLM 模型。
-- **Ollama 原生 thinking/reasoning 支援** — 使用 Ollama 模型時可端對端保留 reasoning 輸出。
-- **Anthropic 自訂 `apiModelId` 修正** — 自訂 Anthropic 模型 ID 現在會保持選取，不再靜默回退到 `claude-sonnet-4-5`。
-- 修正：Ollama 供應商的工具結果處理與過早的內容壓縮。
-- 修正：委派子任務被中斷時保留父子任務連結。
-- 改進 Anthropic Vertex 中 Claude 內容區塊的處理，以獲得更可靠的回應。
-- CI、nightly 發布以及相依套件/工具更新。
+**Zoo Gateway 正式上線！**
+
+此閘道是所有供應商的單一端點，共用一個餘額，並提供逐請求的費用/用量明細。
+
+**設定：**
+
+- 新增額度：https://www.zoocode.dev/dashboard/credits
+- 從擴充功能登入。
+- 在設定中，為不同模型建立設定檔時選擇 Zoo Gateway 作為供應商
+
+用量與費用可在[儀表板](https://www.zoocode.dev/dashboard)中查看。
+
+模型：https://www.zoocode.dev/dashboard/models
+
+- **更多 OpenAI 控制選項** — 在 OpenAI Codex 中使用 Fast 優先模式，並為 OpenAI 相容模型選擇更高的 reasoning effort。
+- **更可靠的供應商與模型** — 改善 router 中繼資料處理、Ollama 模型重新整理、Bedrock Proxy 支援與 Friendli reasoning 控制。
+- **更順暢的設定與開發工作流程** — 設定現在會保留未儲存的編輯，短終端機命令可正確完成，Architect 計畫使用相對於工作區的路徑，剩餘面向使用者的 Roo 品牌也已更新為 Zoo。
+- **更強大的任務基礎** — 新的任務登錄與以 semaphore 為基礎的排程器，讓 Zoo Code 能更安全地協調任務。
+- **一致的供應商架構** — 供應商識別碼與 service tier 元件現已集中到 API、核心、共用型別和 webview 中。
+- 安全性、相依套件、lint、視覺迴歸與端對端測試改善。
 
 ## Zoo Code 能為您做什麼？
 
